@@ -1,40 +1,32 @@
 # 📝 To-Do List Web Application
 
-A modern, responsive, and feature-rich To-Do List web application built using the MERN stack. The application helps users efficiently organize, prioritize, and manage their daily tasks through an intuitive interface.
+A modern, responsive, and feature-rich To-Do List web application built using **Node.js, Express, MongoDB (Mongoose), and Vanilla HTML/CSS/JavaScript**. The application helps users efficiently organize, prioritize, and manage their daily tasks through an intuitive, clean interface.
 
 ---
 
 ## 🚀 Features
 
-- ✅ Create new tasks
-- ✏️ Edit existing tasks
-- 🗑️ Delete tasks
-- ✔️ Mark tasks as completed
-- 📅 Set due dates
-- 🚩 Priority levels (High, Medium, Low)
-- 🔍 Search tasks
-- 🎯 Filter tasks by status and priority
-- 📱 Fully responsive design
-- 🌙 Modern UI with smooth interactions
-- 💾 Persistent data storage using MongoDB
+- ✅ **Create new tasks**: Add tasks with title, description, priority, and due dates.
+- ✏️ **Edit existing tasks**: Modify task details inline or via edit options.
+- 🗑️ **Delete tasks**: Remove tasks you no longer need.
+- ✔️ **Mark tasks as completed**: Keep track of finished vs. pending tasks.
+- 📅 **Set due dates**: Assign deadlines to your tasks.
+- 🚩 **Priority levels**: Categorize tasks using priority levels (High, Medium, Low).
+- 🔍 **Search tasks**: Instantly find specific tasks by matching text in titles or descriptions.
+- 🎯 **Filter tasks**: Narrow down your list by task status and priority.
+- 📱 **Fully responsive design**: Optimized for mobile, tablet, and desktop views.
+- 🌙 **Modern UI**: Styled with clean, modern CSS, hover states, and smooth interactions.
+- 💾 **Persistent data storage**: Fully powered by a MongoDB database with Mongoose schemas.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Frontend
-- React.js
-- HTML5
-- CSS3
-- JavaScript (ES6+)
-
-### Backend
-- Node.js
-- Express.js
-
-### Database
-- MongoDB Atlas
-- Mongoose
+- **Backend**: Node.js, Express.js
+- **Database**: MongoDB Atlas, Mongoose
+- **Frontend**: HTML5, Vanilla CSS3 (with CSS Custom Properties), JavaScript (ES6+)
+- **Environment Management**: dotenv
+- **Development Tooling**: nodemon (for auto-reloading during development)
 
 ---
 
@@ -43,168 +35,97 @@ A modern, responsive, and feature-rich To-Do List web application built using th
 ```text
 TO_DO_LIST/
 │
-├── client/
-│   ├── public/
-│   ├── src/
-│   └── package.json
-│
-├── server/
-│   ├── config/
-│   ├── controllers/
-│   ├── models/
-│   ├── routes/
-│   ├── middleware/
-│   ├── server.js
-│   └── package.json
-│
 ├── docs/
-│   └── Project Documentation.md
+│   └── To-Do List Web Application PRD.md   # Product Requirement Document
 │
-├── .env
-├── README.md
-└── package.json
+├── public/                                  # Static Frontend Assets
+│   ├── index.html                           # Main UI Markup
+│   └── style.css                            # Layout & Theme Styling
+│
+├── src/                                     # Express Backend Logic
+│   ├── config/
+│   │   └── db.js                            # MongoDB Connection Config
+│   ├── controllers/
+│   │   └── taskController.js                # Route Handlers / Controller logic
+│   ├── models/
+│   │   └── Task.js                          # Mongoose Task Schema & Model
+│   ├── routes/
+│   │   └── taskRoutes.js                    # API Routes Definition
+│   └── server.js                            # Express Server & Static File Host
+│
+├── .env                                     # Environment Variables (Local only)
+├── .gitignore
+├── package.json
+└── README.md
 ```
 
 ---
 
-## ⚙️ Installation
+## ⚙️ Installation & Setup
 
-### 1. Clone the Repository
-
+### 1. Clone or Open the Directory
+Make sure you are in the project's root folder:
 ```bash
-git clone https://github.com/your-username/todo-list.git
-cd todo-list
+cd TO_DO_LIST
 ```
 
 ### 2. Install Dependencies
-
-Frontend
-
+Install all required Node.js packages:
 ```bash
-cd client
 npm install
 ```
 
-Backend
-
-```bash
-cd ../server
-npm install
-```
-
----
-
-## 🔑 Environment Variables
-
-Create a `.env` file inside the **server** directory.
-
+### 3. Environment Variables
+Create or verify the `.env` file in the root directory:
 ```env
 PORT=3000
-
 MONGODB_URI=your_mongodb_connection_string
-
-JWT_SECRET=your_secret_key
 ```
 
 ---
 
 ## ▶️ Running the Application
 
-### Start Backend
-
+### Development Mode
+Runs the server with `nodemon` for auto-reloading on file changes:
 ```bash
-cd server
 npm run dev
 ```
 
-### Start Frontend
-
+### Production Mode
+Runs the server using standard `node`:
 ```bash
-cd client
 npm start
 ```
+
+Once started, open your browser and navigate to: [http://localhost:3000](http://localhost:3000)
 
 ---
 
 ## 🌐 API Endpoints
 
+All backend routes are prefixed with `/api/tasks`.
+
 | Method | Endpoint | Description |
 |---------|----------|-------------|
-| GET | /api/tasks | Get all tasks |
-| GET | /api/tasks/:id | Get task by ID |
-| POST | /api/tasks | Create new task |
-| PUT | /api/tasks/:id | Update task |
-| DELETE | /api/tasks/:id | Delete task |
-
----
-
-## 📸 Screenshots
-
-Add screenshots of your application here.
-
-- Dashboard
-- Task List
-- Add Task Form
-- Mobile View
+| **GET** | `/api/tasks` | Get all tasks (supports query filtering/search) |
+| **POST** | `/api/tasks` | Create a new task |
+| **PUT** | `/api/tasks/:id` | Update an existing task's details or completion status |
+| **DELETE** | `/api/tasks/:id` | Delete a task |
 
 ---
 
 ## 🎯 Future Enhancements
 
-- User Authentication
-- Task Categories
-- Reminder Notifications
-- Calendar View
-- Drag & Drop Reordering
-- Team Collaboration
-- Dark/Light Theme Toggle
-- Analytics Dashboard
-
----
-
-## 📖 Project Workflow
-
-```text
-Start
-   │
-   ▼
-Open Application
-   │
-   ▼
-Create Task
-   │
-   ▼
-Store in MongoDB
-   │
-   ▼
-Display Tasks
-   │
-   ├── Edit
-   ├── Delete
-   ├── Complete
-   ├── Search
-   └── Filter
-   │
-   ▼
-Update Database
-   │
-   ▼
-Refresh UI
-   │
-   ▼
-End
-```
+- 🔑 **User Authentication**: Register/Login to maintain personalized task lists.
+- 🗂️ **Task Categories/Tags**: Organize tasks by folders (e.g., Work, Personal, Shopping).
+- 🔔 **Reminder Notifications**: Notify users when a deadline is approaching.
+- 📅 **Calendar View**: See tasks mapped out on a calendar grid.
+- 🌓 **Dark/Light Theme Toggle**: Quick switcher for theme preference.
 
 ---
 
 ## 👨‍💻 Author
 
 **Prince**
-
-B.Tech – Automation & Robotics Engineering
-
----
-
-## 📄 License
-
-This project is developed for educational and learning purposes.
+*B.Tech – Automation & Robotics Engineering*
