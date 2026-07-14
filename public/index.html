@@ -175,7 +175,45 @@
   <!-- Toast Notification System -->
   <div class="toast-container" id="toast-container"></div>
   
+  
+  <!-- Floating AI Chat Widget -->
+  <button class="ai-chat-bubble" id="ai-chat-bubble" title="Talk to AI Assistant">
+    <i class="fa-solid fa-robot"></i>
+    <span class="ai-badge">AI</span>
+  </button>
+
+  <div class="ai-chat-widget" id="ai-chat-widget">
+    <div class="ai-chat-header">
+      <div class="ai-chat-title">
+        <i class="fa-solid fa-robot"></i>
+        <span>TaskSphere AI</span>
+      </div>
+      <button class="ai-chat-close" id="ai-chat-close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    
+    <div class="ai-chat-messages" id="ai-chat-messages">
+      <div class="ai-message assistant">
+        <i class="fa-solid fa-robot message-icon"></i>
+        <div class="message-content">
+          <p>Hello! I am your productivity assistant. You can ask me to list pending items, find high-priority tasks, or summarize your workload!</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="ai-chat-suggestions">
+      <button class="ai-suggestion-btn">What are my high-priority tasks?</button>
+      <button class="ai-suggestion-btn">Show me my pending tasks</button>
+      <button class="ai-suggestion-btn">Summarize my tasks</button>
+    </div>
+    
+    <div class="ai-chat-input-area">
+      <input type="text" id="ai-chat-input" placeholder="Ask AI about your tasks...">
+      <button id="ai-chat-send" title="Send message"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+  </div>
+
   <!-- JavaScript Frontend Logic -->
   <script src="app.js" defer></script>
+  <script src="ai.js" defer></script>
 </body>
 </html>

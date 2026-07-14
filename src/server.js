@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/db');
 const taskRoutes = require('./routes/taskRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -25,6 +26,7 @@ app.use((req, res, next) => {
 
 // API Routes
 app.use('/api/tasks', taskRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../public')));
