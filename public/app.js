@@ -657,10 +657,11 @@ async function downloadCurrentTasks() {
     const tableElement = createPrintableTable(tasks);
     printContainer.appendChild(tableElement);
 
-    // Temporarily append to DOM body off-screen so the browser can calculate heights for page-breaking
+    // Temporarily append to DOM body underneath the UI so html2canvas can capture it properly
     printContainer.style.position = 'absolute';
-    printContainer.style.left = '-9999px';
+    printContainer.style.left = '0';
     printContainer.style.top = '0';
+    printContainer.style.zIndex = '-1';
     document.body.appendChild(printContainer);
 
     const opt = {
@@ -726,10 +727,11 @@ async function downloadAllTasks() {
     const tableElement = createPrintableTable(allTasks);
     printContainer.appendChild(tableElement);
 
-    // Temporarily append to DOM body off-screen so the browser can calculate heights for page-breaking
+    // Temporarily append to DOM body underneath the UI so html2canvas can capture it properly
     printContainer.style.position = 'absolute';
-    printContainer.style.left = '-9999px';
+    printContainer.style.left = '0';
     printContainer.style.top = '0';
+    printContainer.style.zIndex = '-1';
     document.body.appendChild(printContainer);
 
     const opt = {
