@@ -1467,7 +1467,8 @@ select {
 
 .pdf-print-container .tasks-table {
   width: 100% !important;
-  border-collapse: collapse !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
 }
 
 .pdf-print-container .tasks-table th {
