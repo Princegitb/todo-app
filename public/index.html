@@ -193,6 +193,43 @@
     </div>
   </div>
 
+  <!-- Task View Modal (View Task Details) -->
+  <div class="modal-backdrop" id="view-task-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Task Details</h3>
+        <button class="close-btn" id="close-view-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+        <div>
+          <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Title</h4>
+          <p id="view-task-title" style="font-weight: 600; font-size: 1.1rem; font-family: var(--font-display);"></p>
+        </div>
+        <div>
+          <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Description</h4>
+          <p id="view-task-desc" style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.5; color: var(--text-secondary); background: #f8fafc; padding: 0.75rem; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); min-height: 50px;"></p>
+        </div>
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+          <div>
+            <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Priority</h4>
+            <span id="view-task-priority" class="priority-badge"></span>
+          </div>
+          <div>
+            <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Due Date</h4>
+            <span id="view-task-due" class="due-badge"></span>
+          </div>
+          <div>
+            <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Status</h4>
+            <span id="view-task-status" class="status-badge"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="close-view-modal-bottom-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification System -->
   <div class="toast-container" id="toast-container"></div>
 

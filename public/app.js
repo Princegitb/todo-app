@@ -40,6 +40,16 @@ const statsRate = document.getElementById('stats-rate');
 // Toast Container
 const toastContainer = document.getElementById('toast-container');
 
+// View Details Modal Elements
+const viewTaskModal = document.getElementById('view-task-modal');
+const closeViewModalBtn = document.getElementById('close-view-modal-btn');
+const closeViewModalBottomBtn = document.getElementById('close-view-modal-bottom-btn');
+const viewTaskTitle = document.getElementById('view-task-title');
+const viewTaskDesc = document.getElementById('view-task-desc');
+const viewTaskPriority = document.getElementById('view-task-priority');
+const viewTaskDue = document.getElementById('view-task-due');
+const viewTaskStatus = document.getElementById('view-task-status');
+
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
   initCustomSelects();
@@ -53,7 +63,7 @@ function setupEventListeners() {
   openAddBtn.addEventListener('click', () => openModal());
   closeModalBtn.addEventListener('click', closeModal);
   cancelModalBtn.addEventListener('click', closeModal);
-  
+
   // Close modal when clicking backdrop
   taskModal.addEventListener('click', (e) => {
     if (e.target === taskModal) closeModal();
@@ -88,25 +98,32 @@ function setupEventListeners() {
   // Download actions
   document.getElementById('download-current-btn').addEventListener('click', downloadCurrentTasks);
   document.getElementById('download-all-btn').addEventListener('click', downloadAllTasks);
+
+  // View Modal close handlers
+  closeViewModalBtn.addEventListener('click', closeViewModal);
+  closeViewModalBottomBtn.addEventListener('click', closeViewModal);
+  viewTaskModal.addEventListener('click', (e) => {
+    if (e.target === viewTaskModal) closeViewModal();
+  });
 }
 
 // Toast Notifications helper
 function showToast(message, type = 'success') {
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  
+
   const icon = document.createElement('i');
-  icon.className = type === 'success' 
-    ? 'fa-solid fa-circle-check toast-icon' 
+  icon.className = type === 'success'
+    ? 'fa-solid fa-circle-check toast-icon'
     : 'fa-solid fa-triangle-exclamation toast-icon';
-    
+
   const text = document.createElement('span');
   text.textContent = message;
-  
+
   toast.appendChild(icon);
   toast.appendChild(text);
   toastContainer.appendChild(toast);
-  
+
   // Auto remove after 3s
   setTimeout(() => {
     toast.style.opacity = '0';
@@ -125,10 +142,10 @@ async function fetchTasks() {
     const search = searchInput.value.trim();
     const completed = filterStatusSelect.value;
     const priority = filterPrioritySelect.value;
-    
+
     let sortBy = 'dueDate';
     let sortOrder = 'asc';
-    
+
     if (sortBySelect.value === 'dueDateDesc') {
       sortBy = 'dueDate';
       sortOrder = 'desc';
@@ -146,7 +163,7 @@ async function fetchTasks() {
 
     const response = await fetch(`${API_URL}?${queryParams.toString()}`);
     if (!response.ok) throw new Error('Failed to load tasks');
-    
+
     tasks = await response.json();
     renderTasks();
     updateStats();
@@ -161,13 +178,13 @@ async function fetchTasks() {
 // Render task list in UI
 function renderTasks() {
   tasksContainer.innerHTML = '';
-  
+
   if (tasks.length === 0) {
     tasksContainer.style.display = 'none';
     emptyState.style.display = 'flex';
     return;
   }
-  
+
   tasksContainer.style.display = 'block';
   emptyState.style.display = 'none';
 
@@ -191,30 +208,30 @@ function renderTasks() {
     </thead>
     <tbody id="tasks-table-body"></tbody>
   `;
-  
+
   const tbody = table.querySelector('#tasks-table-body');
 
   tasks.forEach(task => {
     const row = document.createElement('tr');
     row.className = `task-row ${task.completed ? 'task-completed' : ''}`;
     row.setAttribute('data-id', task._id);
-    
+
     // Check if task is overdue
     let isOverdue = false;
     let formattedDate = 'No due date';
-    
+
     if (task.dueDate) {
       const dueDateObj = new Date(task.dueDate);
       const today = new Date();
-      today.setHours(0,0,0,0);
-      
+      today.setHours(0, 0, 0, 0);
+
       const dueDateVal = new Date(dueDateObj);
-      dueDateVal.setHours(0,0,0,0);
-      
+      dueDateVal.setHours(0, 0, 0, 0);
+
       if (dueDateVal < today && !task.completed) {
         isOverdue = true;
       }
-      
+
       formattedDate = dueDateObj.toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
@@ -271,6 +288,22 @@ function renderTasks() {
     const deleteBtn = row.querySelector('.delete-btn');
     deleteBtn.addEventListener('click', () => handleDeleteTask(task._id));
 
+    // Row click listener (for viewing details)
+    row.addEventListener('click', (e) => {
+      // Don't trigger details view if clicking checkboxes, edit, or delete buttons
+      if (
+        e.target.closest('.col-checkbox') || 
+        e.target.closest('.col-edit') || 
+        e.target.closest('.col-delete') || 
+        e.target.closest('.task-toggle') ||
+        e.target.closest('.edit-btn') ||
+        e.target.closest('.delete-btn')
+      ) {
+        return;
+      }
+      openViewModal(task);
+    });
+
     tbody.appendChild(row);
   });
 
@@ -302,7 +335,7 @@ function openModal(task = null) {
     taskTitleInput.value = task.title;
     taskDescInput.value = task.description || '';
     taskPrioritySelect.value = task.priority;
-    
+
     if (task.dueDate) {
       // Format to YYYY-MM-DD
       const date = new Date(task.dueDate);
@@ -329,7 +362,7 @@ function closeModal() {
 // Form Submission handling
 async function handleFormSubmit(e) {
   e.preventDefault();
-  
+
   const id = taskIdInput.value;
   const title = taskTitleInput.value.trim();
   const description = taskDescInput.value.trim();
@@ -362,7 +395,7 @@ async function handleFormSubmit(e) {
     }
 
     if (!response.ok) throw new Error('Failed to save task');
-    
+
     showToast(id ? 'Task updated successfully' : 'Task created successfully');
     closeModal();
     fetchTasks();
@@ -379,9 +412,9 @@ async function toggleTaskCompletion(id, isCompleted) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ completed: isCompleted })
     });
-    
+
     if (!response.ok) throw new Error('Failed to update status');
-    
+
     showToast(isCompleted ? 'Task completed!' : 'Task set to pending');
     fetchTasks();
   } catch (error) {
@@ -392,14 +425,14 @@ async function toggleTaskCompletion(id, isCompleted) {
 // Delete Task
 async function handleDeleteTask(id) {
   if (!confirm('Are you sure you want to delete this task?')) return;
-  
+
   try {
     const response = await fetch(`${API_URL}/${id}`, {
       method: 'DELETE'
     });
-    
+
     if (!response.ok) throw new Error('Failed to delete task');
-    
+
     showToast('Task deleted successfully');
     fetchTasks();
   } catch (error) {
@@ -409,7 +442,7 @@ async function handleDeleteTask(id) {
 
 // Escape HTML helper to prevent XSS injection
 function escapeHTML(str) {
-  return str.replace(/[&<>'"]/g, 
+  return str.replace(/[&<>'"]/g,
     tag => ({
       '&': '&amp;',
       '<': '&lt;',
@@ -423,16 +456,16 @@ function escapeHTML(str) {
 // Custom Select initialization and synchronisation logic
 function initCustomSelects() {
   const selects = document.querySelectorAll('select');
-  
+
   selects.forEach(select => {
     if (select.nextElementSibling && select.nextElementSibling.classList.contains('custom-select')) {
       return;
     }
-    
+
     const customSelect = document.createElement('div');
     customSelect.className = 'custom-select';
     customSelect.setAttribute('data-select-id', select.id);
-    
+
     const trigger = document.createElement('button');
     trigger.type = 'button';
     trigger.className = 'custom-select-trigger';
@@ -440,14 +473,14 @@ function initCustomSelects() {
       <span></span>
       <i class="fa-solid fa-chevron-down"></i>
     `;
-    
+
     const optionsContainer = document.createElement('div');
     optionsContainer.className = 'custom-select-options';
-    
+
     customSelect.appendChild(trigger);
     customSelect.appendChild(optionsContainer);
     select.insertAdjacentElement('afterend', customSelect);
-    
+
     function buildOptions() {
       optionsContainer.innerHTML = '';
       Array.from(select.options).forEach(opt => {
@@ -459,7 +492,7 @@ function initCustomSelects() {
         }
         optionDiv.textContent = opt.textContent;
         optionDiv.setAttribute('data-value', opt.value);
-        
+
         optionDiv.addEventListener('click', (e) => {
           e.stopPropagation();
           select.value = opt.value;
@@ -467,13 +500,13 @@ function initCustomSelects() {
           customSelect.classList.remove('active');
           syncCustomSelect(select);
         });
-        
+
         optionsContainer.appendChild(optionDiv);
       });
     }
-    
+
     buildOptions();
-    
+
     trigger.addEventListener('click', (e) => {
       e.stopPropagation();
       document.querySelectorAll('.custom-select').forEach(cs => {
@@ -482,7 +515,7 @@ function initCustomSelects() {
       customSelect.classList.toggle('active');
     });
   });
-  
+
   document.addEventListener('click', () => {
     document.querySelectorAll('.custom-select').forEach(cs => {
       cs.classList.remove('active');
@@ -493,15 +526,15 @@ function initCustomSelects() {
 function syncCustomSelect(select) {
   const customSelect = select.nextElementSibling;
   if (!customSelect || !customSelect.classList.contains('custom-select')) return;
-  
+
   const trigger = customSelect.querySelector('.custom-select-trigger span');
   const options = customSelect.querySelectorAll('.custom-option');
-  
+
   const selectedOption = Array.from(select.options).find(opt => opt.value === select.value);
   if (selectedOption) {
     trigger.textContent = selectedOption.textContent;
   }
-  
+
   options.forEach(optDiv => {
     if (optDiv.getAttribute('data-value') === select.value) {
       optDiv.classList.add('selected');
@@ -515,7 +548,7 @@ function syncAllCustomSelects() {
   document.querySelectorAll('select').forEach(syncCustomSelect);
 }
 
-// PDF Download Helpers
+
 function createPrintableTable(tasksList) {
   const tableWrapper = document.createElement('div');
   tableWrapper.className = 'tasks-table-wrapper';
@@ -534,28 +567,28 @@ function createPrintableTable(tasksList) {
     </thead>
     <tbody></tbody>
   `;
-  
+
   const tbody = table.querySelector('tbody');
 
   tasksList.forEach(task => {
     const row = document.createElement('tr');
     row.className = `task-row ${task.completed ? 'task-completed' : ''}`;
-    
+
     let isOverdue = false;
     let formattedDate = 'No due date';
-    
+
     if (task.dueDate) {
       const dueDateObj = new Date(task.dueDate);
       const today = new Date();
-      today.setHours(0,0,0,0);
-      
+      today.setHours(0, 0, 0, 0);
+
       const dueDateVal = new Date(dueDateObj);
-      dueDateVal.setHours(0,0,0,0);
-      
+      dueDateVal.setHours(0, 0, 0, 0);
+
       if (dueDateVal < today && !task.completed) {
         isOverdue = true;
       }
-      
+
       formattedDate = dueDateObj.toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
@@ -597,16 +630,16 @@ async function downloadCurrentTasks() {
   }
 
   showToast('Generating PDF...');
-  
+
   try {
     const printContainer = document.createElement('div');
     printContainer.className = 'pdf-print-container';
-    
+
     // Get filter labels
     const statusLabel = filterStatusSelect.options[filterStatusSelect.selectedIndex].text;
     const priorityLabel = filterPrioritySelect.options[filterPrioritySelect.selectedIndex].text;
     const sortLabel = sortBySelect.options[sortBySelect.selectedIndex].text;
-    
+
     printContainer.innerHTML = `
       <div class="pdf-print-header">
         <h2>TaskSphere - Tasks Report</h2>
@@ -620,18 +653,18 @@ async function downloadCurrentTasks() {
         </p>
       </div>
     `;
-    
+
     const tableElement = createPrintableTable(tasks);
     printContainer.appendChild(tableElement);
-    
+
     const opt = {
-      margin:       0.4,
-      filename:     'tasks_current_view.pdf',
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+      margin: 0.4,
+      filename: 'tasks_current_view.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
     };
-    
+
     await html2pdf().from(printContainer).set(opt).save();
     showToast('PDF downloaded successfully');
   } catch (error) {
@@ -642,12 +675,12 @@ async function downloadCurrentTasks() {
 
 async function downloadAllTasks() {
   showToast('Fetching all tasks...');
-  
+
   try {
     // Get sorting parameters
     let sortBy = 'dueDate';
     let sortOrder = 'asc';
-    
+
     if (sortBySelect.value === 'dueDateDesc') {
       sortBy = 'dueDate';
       sortOrder = 'desc';
@@ -658,7 +691,7 @@ async function downloadAllTasks() {
 
     const response = await fetch(`${API_URL}?sortBy=${sortBy}&sortOrder=${sortOrder}`);
     if (!response.ok) throw new Error('Failed to fetch all tasks');
-    
+
     const allTasks = await response.json();
     if (allTasks.length === 0) {
       showToast('No tasks found to download', 'error');
@@ -666,10 +699,10 @@ async function downloadAllTasks() {
     }
 
     showToast('Generating PDF...');
-    
+
     const printContainer = document.createElement('div');
     printContainer.className = 'pdf-print-container';
-    
+
     printContainer.innerHTML = `
       <div class="pdf-print-header">
         <h2>TaskSphere - All Tasks Report</h2>
@@ -678,22 +711,70 @@ async function downloadAllTasks() {
         </p>
       </div>
     `;
-    
+
     const tableElement = createPrintableTable(allTasks);
     printContainer.appendChild(tableElement);
-    
+
     const opt = {
-      margin:       0.4,
-      filename:     'tasks_all.pdf',
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+      margin: 0.4,
+      filename: 'tasks_all.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
     };
-    
+
     await html2pdf().from(printContainer).set(opt).save();
     showToast('PDF downloaded successfully');
   } catch (error) {
     console.error('PDF Generation Error:', error);
     showToast('Failed to generate PDF', 'error');
   }
+}
+
+// Task Detail View Modal toggles
+function openViewModal(task) {
+  viewTaskTitle.textContent = task.title;
+  viewTaskDesc.textContent = task.description || 'No description provided.';
+  
+  // Priority Badge Styling
+  viewTaskPriority.className = `priority-badge ${task.priority.toLowerCase()}`;
+  viewTaskPriority.textContent = task.priority;
+  
+  // Overdue status check and date layout
+  let formattedDate = 'No due date';
+  let isOverdue = false;
+  
+  if (task.dueDate) {
+    const dueDateObj = new Date(task.dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const dueDateVal = new Date(dueDateObj);
+    dueDateVal.setHours(0, 0, 0, 0);
+    
+    if (dueDateVal < today && !task.completed) {
+      isOverdue = true;
+    }
+    
+    formattedDate = dueDateObj.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+  
+  viewTaskDue.className = `due-badge ${isOverdue ? 'overdue' : ''}`;
+  viewTaskDue.innerHTML = `<i class="fa-regular fa-calendar"></i> <span>${formattedDate}${isOverdue ? ' (Overdue)' : ''}</span>`;
+  
+  // Status Badge Styling
+  viewTaskStatus.className = `status-badge ${task.completed ? 'completed' : 'pending'}`;
+  viewTaskStatus.textContent = task.completed ? 'Completed' : 'Pending';
+
+  viewTaskModal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeViewModal() {
+  viewTaskModal.classList.remove('show');
+  document.body.style.overflow = '';
 }

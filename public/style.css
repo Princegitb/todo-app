@@ -1491,5 +1491,15 @@ select {
 .pdf-print-container .col-edit,
 .pdf-print-container .col-delete,
 .pdf-print-container .col-checkbox {
-  display: none !important; /* Hide action/checkbox columns in print layout as requested for a clean document */
+  display: none !important;
+  /* Hide action/checkbox columns in print layout as requested for a clean document */
+}
+
+/* Ensure the full description wraps in the PDF table instead of ellipsis */
+.pdf-print-container .col-desc {
+  white-space: normal !important;
+  word-break: break-word !important;
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
