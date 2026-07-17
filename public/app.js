@@ -666,7 +666,10 @@ async function downloadCurrentTasks() {
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
-    await html2pdf().from(printContainer).set(opt).save();
+    const worker = html2pdf().from(printContainer).set(opt).toContainer();
+    await worker;
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await worker.toCanvas().toPdf().save();
     showToast('PDF downloaded successfully');
   } catch (error) {
     console.error('PDF Generation Error:', error);
@@ -725,7 +728,10 @@ async function downloadAllTasks() {
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
-    await html2pdf().from(printContainer).set(opt).save();
+    const worker = html2pdf().from(printContainer).set(opt).toContainer();
+    await worker;
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await worker.toCanvas().toPdf().save();
     showToast('PDF downloaded successfully');
   } catch (error) {
     console.error('PDF Generation Error:', error);
