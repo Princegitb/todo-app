@@ -552,43 +552,50 @@ function syncAllCustomSelects() {
 function createPrintableTable(tasksList) {
   const tableWrapper = document.createElement('div');
   tableWrapper.className = 'tasks-table-wrapper';
+  tableWrapper.setAttribute('style', 'width: 100% !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important; overflow: visible !important; background: #ffffff !important; box-sizing: border-box !important;');
 
   const table = document.createElement('table');
   table.className = 'tasks-table';
+  table.setAttribute('style', 'width: 100% !important; border-collapse: separate !important; border-spacing: 0 !important; text-align: left !important; background-color: #ffffff !important;');
+  
+  const thStyle = 'background-color: #f8fafc !important; color: #475569 !important; font-size: 11px !important; font-weight: 600 !important; text-transform: uppercase !important; border-bottom: 1px solid #e2e8f0 !important; padding: 10px !important; font-family: Outfit, sans-serif !important;';
+  
   table.innerHTML = `
     <thead>
       <tr>
-        <th class="col-task" style="width: 25%;">Task</th>
-        <th class="col-desc" style="width: 35%;">Description</th>
-        <th class="col-priority" style="width: 13%;">Priority</th>
-        <th class="col-due" style="width: 15%;">Due Date</th>
-        <th class="col-status" style="width: 12%;">Status</th>
+        <th class="col-task" style="width: 25%; ${thStyle}">Task</th>
+        <th class="col-desc" style="width: 35%; ${thStyle}">Description</th>
+        <th class="col-priority" style="width: 13%; ${thStyle}">Priority</th>
+        <th class="col-due" style="width: 15%; ${thStyle}">Due Date</th>
+        <th class="col-status" style="width: 12%; ${thStyle}">Status</th>
       </tr>
     </thead>
     <tbody></tbody>
   `;
-
+  
   const tbody = table.querySelector('tbody');
+  const tdStyle = 'padding: 10px !important; font-size: 11px !important; border-bottom: 1px solid #e2e8f0 !important; color: #0f172a !important; vertical-align: middle !important; font-family: "Plus Jakarta Sans", sans-serif !important;';
 
   tasksList.forEach(task => {
     const row = document.createElement('tr');
     row.className = `task-row ${task.completed ? 'task-completed' : ''}`;
-
+    row.setAttribute('style', 'transition: none !important; background-color: #ffffff !important;');
+    
     let isOverdue = false;
     let formattedDate = 'No due date';
-
+    
     if (task.dueDate) {
       const dueDateObj = new Date(task.dueDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-
+      
       const dueDateVal = new Date(dueDateObj);
       dueDateVal.setHours(0, 0, 0, 0);
-
+      
       if (dueDateVal < today && !task.completed) {
         isOverdue = true;
       }
-
+      
       formattedDate = dueDateObj.toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
@@ -597,22 +604,22 @@ function createPrintableTable(tasksList) {
     }
 
     row.innerHTML = `
-      <td class="col-task">
-        <span class="task-title" style="font-weight: 600;">${escapeHTML(task.title)}</span>
+      <td class="col-task" style="${tdStyle}">
+        <span class="task-title" style="font-weight: 600; font-family: Outfit, sans-serif !important;">${escapeHTML(task.title)}</span>
       </td>
-      <td class="col-desc" style="white-space: normal !important; word-break: break-word !important; max-width: none !important; overflow: visible !important; text-overflow: clip !important;">
-        <span class="task-desc" style="white-space: normal !important; word-break: break-word !important;">${task.description ? escapeHTML(task.description) : '<span class="text-muted-placeholder">-</span>'}</span>
+      <td class="col-desc" style="${tdStyle} white-space: normal !important; word-break: break-word !important; max-width: none !important; overflow: visible !important; text-overflow: clip !important;">
+        <span class="task-desc" style="white-space: normal !important; word-break: break-word !important;">${task.description ? escapeHTML(task.description) : '<span class="text-muted-placeholder" style="color: #94a3b8 !important;">-</span>'}</span>
       </td>
-      <td class="col-priority">
+      <td class="col-priority" style="${tdStyle}">
         <span class="priority-badge ${task.priority.toLowerCase()}">${task.priority}</span>
       </td>
-      <td class="col-due">
+      <td class="col-due" style="${tdStyle}">
         <span class="due-badge ${isOverdue ? 'overdue' : ''}">
           <i class="fa-regular fa-calendar"></i>
           <span>${formattedDate}${isOverdue ? ' (Overdue)' : ''}</span>
         </span>
       </td>
-      <td class="col-status">
+      <td class="col-status" style="${tdStyle}">
         <span class="status-badge ${task.completed ? 'completed' : 'pending'}">${task.completed ? 'Completed' : 'Pending'}</span>
       </td>
     `;
