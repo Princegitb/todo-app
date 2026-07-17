@@ -83,21 +83,21 @@ const seedDB = async () => {
     if (!process.env.MONGODB_URI) {
       throw new Error("MONGODB_URI is not set in environment");
     }
-    
+
     console.log("Connecting to MongoDB Atlas...");
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected successfully.");
-    
+
     // Clear existing tasks
     console.log("Clearing existing tasks from database...");
     await Task.deleteMany({});
     console.log("Database cleared.");
-    
+
     // Insert demo tasks
     console.log("Inserting 10 demo tasks with logical dates...");
     await Task.insertMany(demoTasks);
     console.log("Successfully seeded 10 demo tasks!");
-    
+
     await mongoose.connection.close();
     console.log("MongoDB connection closed.");
   } catch (error) {

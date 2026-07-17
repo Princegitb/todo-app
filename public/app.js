@@ -70,6 +70,24 @@ function setupEventListeners() {
   filterStatusSelect.addEventListener('change', fetchTasks);
   filterPrioritySelect.addEventListener('change', fetchTasks);
   sortBySelect.addEventListener('change', fetchTasks);
+
+  // Download PDF dropdown toggle
+  const downloadDropdownBtn = document.getElementById('download-dropdown-btn');
+  const downloadDropdownMenu = document.getElementById('download-dropdown-menu');
+  downloadDropdownBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    downloadDropdownMenu.classList.toggle('show');
+    // Hide other custom selects
+    document.querySelectorAll('.custom-select').forEach(cs => cs.classList.remove('active'));
+  });
+
+  document.addEventListener('click', () => {
+    downloadDropdownMenu.classList.remove('show');
+  });
+
+  // Download actions
+  document.getElementById('download-current-btn').addEventListener('click', downloadCurrentTasks);
+  document.getElementById('download-all-btn').addEventListener('click', downloadAllTasks);
 }
 
 // Toast Notifications helper
@@ -495,4 +513,187 @@ function syncCustomSelect(select) {
 
 function syncAllCustomSelects() {
   document.querySelectorAll('select').forEach(syncCustomSelect);
+}
+
+// PDF Download Helpers
+function createPrintableTable(tasksList) {
+  const tableWrapper = document.createElement('div');
+  tableWrapper.className = 'tasks-table-wrapper';
+
+  const table = document.createElement('table');
+  table.className = 'tasks-table';
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th class="col-task" style="width: 25%;">Task</th>
+        <th class="col-desc" style="width: 35%;">Description</th>
+        <th class="col-priority" style="width: 13%;">Priority</th>
+        <th class="col-due" style="width: 15%;">Due Date</th>
+        <th class="col-status" style="width: 12%;">Status</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  
+  const tbody = table.querySelector('tbody');
+
+  tasksList.forEach(task => {
+    const row = document.createElement('tr');
+    row.className = `task-row ${task.completed ? 'task-completed' : ''}`;
+    
+    let isOverdue = false;
+    let formattedDate = 'No due date';
+    
+    if (task.dueDate) {
+      const dueDateObj = new Date(task.dueDate);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      
+      const dueDateVal = new Date(dueDateObj);
+      dueDateVal.setHours(0,0,0,0);
+      
+      if (dueDateVal < today && !task.completed) {
+        isOverdue = true;
+      }
+      
+      formattedDate = dueDateObj.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+
+    row.innerHTML = `
+      <td class="col-task">
+        <span class="task-title" style="font-weight: 600;">${escapeHTML(task.title)}</span>
+      </td>
+      <td class="col-desc">
+        <span class="task-desc">${task.description ? escapeHTML(task.description) : '<span class="text-muted-placeholder">-</span>'}</span>
+      </td>
+      <td class="col-priority">
+        <span class="priority-badge ${task.priority.toLowerCase()}">${task.priority}</span>
+      </td>
+      <td class="col-due">
+        <span class="due-badge ${isOverdue ? 'overdue' : ''}">
+          <i class="fa-regular fa-calendar"></i>
+          <span>${formattedDate}${isOverdue ? ' (Overdue)' : ''}</span>
+        </span>
+      </td>
+      <td class="col-status">
+        <span class="status-badge ${task.completed ? 'completed' : 'pending'}">${task.completed ? 'Completed' : 'Pending'}</span>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  tableWrapper.appendChild(table);
+  return tableWrapper;
+}
+
+async function downloadCurrentTasks() {
+  if (tasks.length === 0) {
+    showToast('No tasks to download', 'error');
+    return;
+  }
+
+  showToast('Generating PDF...');
+  
+  try {
+    const printContainer = document.createElement('div');
+    printContainer.className = 'pdf-print-container';
+    
+    // Get filter labels
+    const statusLabel = filterStatusSelect.options[filterStatusSelect.selectedIndex].text;
+    const priorityLabel = filterPrioritySelect.options[filterPrioritySelect.selectedIndex].text;
+    const sortLabel = sortBySelect.options[sortBySelect.selectedIndex].text;
+    
+    printContainer.innerHTML = `
+      <div class="pdf-print-header">
+        <h2>TaskSphere - Tasks Report</h2>
+        <p style="margin-top: 4px; font-size: 12px; color: var(--text-secondary);">
+          <strong>Status:</strong> ${statusLabel} | 
+          <strong>Priority:</strong> ${priorityLabel} | 
+          <strong>Sort:</strong> ${sortLabel}
+        </p>
+        <p style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+          Generated on: ${new Date().toLocaleString()}
+        </p>
+      </div>
+    `;
+    
+    const tableElement = createPrintableTable(tasks);
+    printContainer.appendChild(tableElement);
+    
+    const opt = {
+      margin:       0.4,
+      filename:     'tasks_current_view.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+    };
+    
+    await html2pdf().from(printContainer).set(opt).save();
+    showToast('PDF downloaded successfully');
+  } catch (error) {
+    console.error('PDF Generation Error:', error);
+    showToast('Failed to generate PDF', 'error');
+  }
+}
+
+async function downloadAllTasks() {
+  showToast('Fetching all tasks...');
+  
+  try {
+    // Get sorting parameters
+    let sortBy = 'dueDate';
+    let sortOrder = 'asc';
+    
+    if (sortBySelect.value === 'dueDateDesc') {
+      sortBy = 'dueDate';
+      sortOrder = 'desc';
+    } else if (sortBySelect.value === 'createdAt') {
+      sortBy = 'createdAt';
+      sortOrder = 'desc';
+    }
+
+    const response = await fetch(`${API_URL}?sortBy=${sortBy}&sortOrder=${sortOrder}`);
+    if (!response.ok) throw new Error('Failed to fetch all tasks');
+    
+    const allTasks = await response.json();
+    if (allTasks.length === 0) {
+      showToast('No tasks found to download', 'error');
+      return;
+    }
+
+    showToast('Generating PDF...');
+    
+    const printContainer = document.createElement('div');
+    printContainer.className = 'pdf-print-container';
+    
+    printContainer.innerHTML = `
+      <div class="pdf-print-header">
+        <h2>TaskSphere - All Tasks Report</h2>
+        <p style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+          Generated on: ${new Date().toLocaleString()}
+        </p>
+      </div>
+    `;
+    
+    const tableElement = createPrintableTable(allTasks);
+    printContainer.appendChild(tableElement);
+    
+    const opt = {
+      margin:       0.4,
+      filename:     'tasks_all.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+    };
+    
+    await html2pdf().from(printContainer).set(opt).save();
+    showToast('PDF downloaded successfully');
+  } catch (error) {
+    console.error('PDF Generation Error:', error);
+    showToast('Failed to generate PDF', 'error');
+  }
 }

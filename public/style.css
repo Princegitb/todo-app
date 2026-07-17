@@ -9,9 +9,10 @@
   --text-secondary: #475569;
   --text-muted: #94a3b8;
 
-  --primary: #0f172a; /* Premium Dark Slate/Black */
-  --primary-glow: rgba(15, 23, 42, 0.08); /* Subtle grey glow */
-  --primary-hover: #1e293b; /* Charcoal gray */
+  --primary: #7c3aed;
+  /* Purple Accent */
+  --primary-glow: rgba(124, 58, 237, 0.15);
+  --primary-hover: #6d28d9;
 
   --priority-high: #dc2626;
   --priority-high-bg: #fee2e2;
@@ -506,7 +507,8 @@ select {
   width: 110px;
 }
 
-.col-edit, .col-delete {
+.col-edit,
+.col-delete {
   width: 48px;
   text-align: center;
 }
@@ -535,7 +537,7 @@ select {
   font-size: 0.7rem;
 }
 
-.task-checkbox-container input:checked + .custom-checkbox {
+.task-checkbox-container input:checked+.custom-checkbox {
   background-color: var(--text-primary);
   border-color: var(--text-primary);
   color: var(--panel-bg);
@@ -841,6 +843,7 @@ select {
     opacity: 0;
     transform: translateY(4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -852,6 +855,7 @@ select {
     opacity: 0;
     transform: translateX(20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -937,7 +941,8 @@ select {
   }
 
   .tasks-table td::before {
-    display: none !important; /* Hide redundant data labels */
+    display: none !important;
+    /* Hide redundant data labels */
   }
 
   .tasks-table td.col-checkbox {
@@ -951,7 +956,8 @@ select {
   .tasks-table td.col-task {
     width: 100% !important;
     padding-left: 2.25rem;
-    padding-right: 5.5rem; /* space for actions */
+    padding-right: 5.5rem;
+    /* space for actions */
     font-weight: 600;
     font-size: 0.95rem;
     color: var(--text-primary);
@@ -995,7 +1001,8 @@ select {
   }
 
   .tasks-table td.col-priority {
-    margin-left: 2.25rem; /* align with text */
+    margin-left: 2.25rem;
+    /* align with text */
   }
 }
 
@@ -1024,14 +1031,11 @@ select {
     gap: 0.5rem;
   }
 
-  .filters-group > *:last-child {
+  .filters-group>*:last-child {
     grid-column: span 2;
   }
 }
 
-/* ==========================================================================
-   AI CHAT WIDGET & BUBBLE STYLES (PREMIUM UI)
-   ========================================================================== */
 
 .ai-chat-bubble {
   position: fixed;
@@ -1040,12 +1044,12 @@ select {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary) 0%, #1e293b 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
   border: none;
   color: white;
   font-size: 1.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1055,7 +1059,7 @@ select {
 
 .ai-chat-bubble:hover {
   transform: scale(1.1) translateY(-2px);
-  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.35);
+  box-shadow: 0 6px 24px rgba(124, 58, 237, 0.5);
 }
 
 .ai-chat-bubble:active {
@@ -1107,7 +1111,7 @@ select {
 
 .ai-chat-header {
   padding: 1.25rem;
-  background: linear-gradient(135deg, var(--primary) 0%, #1e293b 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
   color: white;
   display: flex;
   justify-content: space-between;
@@ -1226,7 +1230,7 @@ select {
   margin-bottom: 0;
 }
 
-.ai-message .message-content ul, 
+.ai-message .message-content ul,
 .ai-message .message-content ol {
   margin-left: 1.25rem;
   margin-top: 0.25rem;
@@ -1247,7 +1251,8 @@ select {
   border-radius: 12px;
   border-top-left-radius: 2px;
   align-self: flex-start;
-  margin-left: 40px; /* Offset for avatar */
+  margin-left: 40px;
+  /* Offset for avatar */
 }
 
 .ai-typing-dot {
@@ -1258,12 +1263,25 @@ select {
   animation: ai-bounce 1.4s infinite ease-in-out both;
 }
 
-.ai-typing-dot:nth-child(1) { animation-delay: -0.32s; }
-.ai-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+.ai-typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.ai-typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
 
 @keyframes ai-bounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+
+  40% {
+    transform: scale(1);
+  }
 }
 
 .ai-chat-suggestions {
@@ -1277,7 +1295,8 @@ select {
 }
 
 .ai-chat-suggestions::-webkit-scrollbar {
-  display: none; /* Hide scrollbar for clean chip appearance */
+  display: none;
+  /* Hide scrollbar for clean chip appearance */
 }
 
 .ai-suggestion-btn {
@@ -1336,7 +1355,7 @@ select {
   justify-content: center;
   font-size: 1rem;
   transition: var(--transition-smooth);
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.2);
 }
 
 #ai-chat-send:hover {
@@ -1355,8 +1374,122 @@ select {
     bottom: 90px;
     height: 460px;
   }
+
   .ai-chat-bubble {
     right: 20px;
     bottom: 20px;
   }
+}
+
+/* Header Actions & Download Dropdown */
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  min-width: 160px;
+  overflow: hidden;
+}
+
+.dropdown-menu.show {
+  display: block;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition-smooth);
+}
+
+.dropdown-item:hover {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
+/* PDF Printable styles to match UI and prevent weird spacing */
+.pdf-print-container {
+  padding: 24px;
+  background-color: #ffffff;
+  color: #000000;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pdf-print-header {
+  margin-bottom: 20px;
+  border-bottom: 2px solid #7c3aed;
+  padding-bottom: 10px;
+}
+
+.pdf-print-header h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 24px;
+  color: #0f172a;
+}
+
+.pdf-print-header p {
+  font-size: 12px;
+  color: #475569;
+}
+
+/* Ensure the table fits exactly in the PDF page and keeps styles */
+.pdf-print-container .tasks-table-wrapper {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  overflow: visible !important;
+}
+
+.pdf-print-container .tasks-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+.pdf-print-container .tasks-table th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 10px !important;
+}
+
+.pdf-print-container .tasks-table td {
+  padding: 10px !important;
+  font-size: 11px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  vertical-align: middle !important;
+}
+
+.pdf-print-container .col-edit,
+.pdf-print-container .col-delete,
+.pdf-print-container .col-checkbox {
+  display: none !important; /* Hide action/checkbox columns in print layout as requested for a clean document */
 }
