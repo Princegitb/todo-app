@@ -657,14 +657,6 @@ async function downloadCurrentTasks() {
     const tableElement = createPrintableTable(tasks);
     printContainer.appendChild(tableElement);
 
-    // Temporarily append to DOM body below the viewport so it is visible to html2canvas but unseen by user
-    printContainer.style.position = 'absolute';
-    printContainer.style.left = '0';
-    printContainer.style.top = '100%';
-    printContainer.style.width = '1024px';
-    printContainer.style.zIndex = '9999';
-    document.body.appendChild(printContainer);
-
     const opt = {
       margin: 0.4,
       filename: 'tasks_current_view.pdf',
@@ -675,10 +667,6 @@ async function downloadCurrentTasks() {
     };
 
     await html2pdf().from(printContainer).set(opt).save();
-    
-    // Remove temporary element from DOM
-    document.body.removeChild(printContainer);
-    
     showToast('PDF downloaded successfully');
   } catch (error) {
     console.error('PDF Generation Error:', error);
@@ -728,14 +716,6 @@ async function downloadAllTasks() {
     const tableElement = createPrintableTable(allTasks);
     printContainer.appendChild(tableElement);
 
-    // Temporarily append to DOM body below the viewport so it is visible to html2canvas but unseen by user
-    printContainer.style.position = 'absolute';
-    printContainer.style.left = '0';
-    printContainer.style.top = '100%';
-    printContainer.style.width = '1024px';
-    printContainer.style.zIndex = '9999';
-    document.body.appendChild(printContainer);
-
     const opt = {
       margin: 0.4,
       filename: 'tasks_all.pdf',
@@ -746,10 +726,6 @@ async function downloadAllTasks() {
     };
 
     await html2pdf().from(printContainer).set(opt).save();
-    
-    // Remove temporary element from DOM
-    document.body.removeChild(printContainer);
-    
     showToast('PDF downloaded successfully');
   } catch (error) {
     console.error('PDF Generation Error:', error);
