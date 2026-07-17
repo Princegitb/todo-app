@@ -600,8 +600,8 @@ function createPrintableTable(tasksList) {
       <td class="col-task">
         <span class="task-title" style="font-weight: 600;">${escapeHTML(task.title)}</span>
       </td>
-      <td class="col-desc">
-        <span class="task-desc">${task.description ? escapeHTML(task.description) : '<span class="text-muted-placeholder">-</span>'}</span>
+      <td class="col-desc" style="white-space: normal !important; word-break: break-word !important; max-width: none !important; overflow: visible !important; text-overflow: clip !important;">
+        <span class="task-desc" style="white-space: normal !important; word-break: break-word !important;">${task.description ? escapeHTML(task.description) : '<span class="text-muted-placeholder">-</span>'}</span>
       </td>
       <td class="col-priority">
         <span class="priority-badge ${task.priority.toLowerCase()}">${task.priority}</span>
