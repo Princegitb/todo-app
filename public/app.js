@@ -657,11 +657,12 @@ async function downloadCurrentTasks() {
     const tableElement = createPrintableTable(tasks);
     printContainer.appendChild(tableElement);
 
-    // Temporarily append to DOM body underneath the UI so html2canvas can capture it properly
+    // Temporarily append to DOM body below the viewport so it is visible to html2canvas but unseen by user
     printContainer.style.position = 'absolute';
     printContainer.style.left = '0';
-    printContainer.style.top = '0';
-    printContainer.style.zIndex = '-1';
+    printContainer.style.top = '100%';
+    printContainer.style.width = '1024px';
+    printContainer.style.zIndex = '9999';
     document.body.appendChild(printContainer);
 
     const opt = {
@@ -727,11 +728,12 @@ async function downloadAllTasks() {
     const tableElement = createPrintableTable(allTasks);
     printContainer.appendChild(tableElement);
 
-    // Temporarily append to DOM body underneath the UI so html2canvas can capture it properly
+    // Temporarily append to DOM body below the viewport so it is visible to html2canvas but unseen by user
     printContainer.style.position = 'absolute';
     printContainer.style.left = '0';
-    printContainer.style.top = '0';
-    printContainer.style.zIndex = '-1';
+    printContainer.style.top = '100%';
+    printContainer.style.width = '1024px';
+    printContainer.style.zIndex = '9999';
     document.body.appendChild(printContainer);
 
     const opt = {
