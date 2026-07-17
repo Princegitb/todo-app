@@ -657,6 +657,12 @@ async function downloadCurrentTasks() {
     const tableElement = createPrintableTable(tasks);
     printContainer.appendChild(tableElement);
 
+    // Temporarily append to DOM body off-screen so the browser can calculate heights for page-breaking
+    printContainer.style.position = 'absolute';
+    printContainer.style.left = '-9999px';
+    printContainer.style.top = '0';
+    document.body.appendChild(printContainer);
+
     const opt = {
       margin: 0.4,
       filename: 'tasks_current_view.pdf',
@@ -667,6 +673,10 @@ async function downloadCurrentTasks() {
     };
 
     await html2pdf().from(printContainer).set(opt).save();
+    
+    // Remove temporary element from DOM
+    document.body.removeChild(printContainer);
+    
     showToast('PDF downloaded successfully');
   } catch (error) {
     console.error('PDF Generation Error:', error);
@@ -716,6 +726,12 @@ async function downloadAllTasks() {
     const tableElement = createPrintableTable(allTasks);
     printContainer.appendChild(tableElement);
 
+    // Temporarily append to DOM body off-screen so the browser can calculate heights for page-breaking
+    printContainer.style.position = 'absolute';
+    printContainer.style.left = '-9999px';
+    printContainer.style.top = '0';
+    document.body.appendChild(printContainer);
+
     const opt = {
       margin: 0.4,
       filename: 'tasks_all.pdf',
@@ -726,6 +742,10 @@ async function downloadAllTasks() {
     };
 
     await html2pdf().from(printContainer).set(opt).save();
+    
+    // Remove temporary element from DOM
+    document.body.removeChild(printContainer);
+    
     showToast('PDF downloaded successfully');
   } catch (error) {
     console.error('PDF Generation Error:', error);
