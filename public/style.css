@@ -1503,3 +1503,9 @@ select {
   overflow: visible !important;
   text-overflow: clip !important;
 }
+
+/* Avoid splitting table rows across PDF pages */
+.pdf-print-container .tasks-table tr {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
