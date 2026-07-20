@@ -23,6 +23,35 @@ aiClose.addEventListener('click', () => {
   aiWidget.classList.remove('show');
 });
 
+// Show AI chat bubble (after login)
+function showAIChatBubble(userName = '') {
+  if (aiBubble) aiBubble.style.display = 'flex';
+  resetAIChat(userName);
+}
+
+// Hide AI chat bubble (before login or on logout)
+function hideAIChatBubble() {
+  if (aiBubble) aiBubble.style.display = 'none';
+  if (aiWidget) aiWidget.classList.remove('show');
+  aiChatHistory = [];
+}
+
+// Start fresh chat session
+function resetAIChat(userName = '') {
+  aiChatHistory = [];
+  if (aiMessages) {
+    const displayName = userName ? userName : 'there';
+    aiMessages.innerHTML = `
+      <div class="ai-message assistant">
+        <i class="fa-solid fa-robot message-icon"></i>
+        <div class="message-content">
+          <p>Hello ${escapeHTML(displayName)}! I am your productivity assistant. You can ask me to list pending items, find high-priority tasks, or summarize your workload!</p>
+        </div>
+      </div>
+    `;
+  }
+}
+
 // Close widget if clicked outside
 document.addEventListener('click', (e) => {
   if (!aiWidget.contains(e.target) && !aiBubble.contains(e.target)) {

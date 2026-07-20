@@ -114,11 +114,19 @@ function updateAuthUI() {
     userAvatar.textContent = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
     userDisplayName.textContent = currentUser.name || 'User';
 
+    if (typeof showAIChatBubble === 'function') {
+      showAIChatBubble(currentUser.name);
+    }
+
     fetchTasks();
   } else {
     userInfoBadge.style.display = 'none';
     openAuthBtn.style.display = 'inline-flex';
     
+    if (typeof hideAIChatBubble === 'function') {
+      hideAIChatBubble();
+    }
+
     tasks = [];
     renderUnauthenticatedState();
     updateStats();
