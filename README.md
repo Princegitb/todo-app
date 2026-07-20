@@ -1,24 +1,24 @@
-# 📝 TaskSphere | AI-Powered Premium To-Do Dashboard
+#  TaskSphere | AI-Powered Premium To-Do Dashboard
 
 **TaskSphere** is a modern, premium, and fully-responsive To-Do List web application featuring an integrated, context-aware **AI Chat Assistant** powered by Google's Gemini API. The app enables users to organize their daily workflows and converse with an AI coach to analyze, prioritize, and summarize their tasks in real-time.
 
 ---
 
-## 🚀 Features
+## Features
 
-- 🤖 **Gemini AI Chat Assistant**: Open a floating chat panel to consult an AI productivity coach about your pending tasks, priority focus areas, and workload summaries.
-- ✅ **Complete Task CRUD**: Create, edit, and delete tasks with titles, descriptions, due dates, and priority indicators.
-- 📅 **Logical Deadline Tracking**: Assign due dates, with active color-coded overdue indicators for missed deadlines.
-- 🚩 **Categorized Priorities**: Sort and filter tasks instantly using Low, Medium, and High priority badges.
-- 🔍 **Search & Filters**: Instantly find specific tasks via fuzzy search over titles and descriptions, and filter by status or priority.
-- 📱 **Mobile-First Responsiveness**: Premium mobile viewport layouts transforming tables into elegant grids with horizontal badge clusters.
-- 🌙 **Modern Aesthetics**: Sleek dashboard styling with smooth micro-animations, glassmorphic menus, and custom scrollbars.
-- 💾 **Persistent DB Storage**: Fully powered by a MongoDB Atlas cloud deployment with Mongoose schemas.
-- 🧪 **Demo DB Seeder**: Comes with a built-in script to instantly populate your dashboard with 10 realistic tasks.
+-  **Gemini AI Chat Assistant**: Open a floating chat panel to consult an AI productivity coach about your pending tasks, priority focus areas, and workload summaries.
+-  **Complete Task CRUD**: Create, edit, and delete tasks with titles, descriptions, due dates, and priority indicators.
+-  **Logical Deadline Tracking**: Assign due dates, with active color-coded overdue indicators for missed deadlines.
+-  **Categorized Priorities**: Sort and filter tasks instantly using Low, Medium, and High priority badges.
+-  **Search & Filters**: Instantly find specific tasks via fuzzy search over titles and descriptions, and filter by status or priority.
+-  **Mobile-First Responsiveness**: Premium mobile viewport layouts transforming tables into elegant grids with horizontal badge clusters.
+-  **Modern Aesthetics**: Sleek dashboard styling with smooth micro-animations, glassmorphic menus, and custom scrollbars.
+-  **Persistent DB Storage**: Fully powered by a MongoDB Atlas cloud deployment with Mongoose schemas.
+-  **Demo DB Seeder**: Comes with a built-in script to instantly populate your dashboard with 10 realistic tasks.
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 - **Backend**: Node.js (v24+), Express.js (v5+)
 - **AI Engine**: Google Gemini API (`gemini-2.5-flash`) via native Node `fetch()`
@@ -29,7 +29,7 @@
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 ```text
 TO_DO_LIST/
@@ -65,7 +65,7 @@ TO_DO_LIST/
 
 ---
 
-## ⚙️ Installation & Setup
+##  Installation & Setup
 
 ### 1. Navigate to Project Root
 ```bash
@@ -93,7 +93,7 @@ node src/seed.js
 
 ---
 
-## ▶️ Running the Application
+##  Running the Application
 
 ### Development Mode (with nodemon)
 ```bash
@@ -109,7 +109,7 @@ Once started, navigate to: [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🌐 API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Description |
 |---------|----------|-------------|
@@ -121,9 +121,9 @@ Once started, navigate to: [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🎯 Future Enhancements
+##  Future Enhancements
 
-- 🔑 **User Authentication**: Secure register/login portals with JWT to isolate personal task boards.
-- 🗂️ **Task Categories/Tags**: Group tasks by folders (e.g., Work, Personal, Shopping).
-- 🌓 **Dark Theme Switcher**: Toggle between light and dark modes.
-- 🔔 **Reminder Notifications**: Notify users when a task deadline is approaching.
+-  **User Authentication**: Secure register/login portals with JWT to isolate personal task boards.
+-  **Task Categories/Tags**: Group tasks by folders (e.g., Work, Personal, Shopping).
+-  **Dark Theme Switcher**: Toggle between light and dark modes.
+-  **Reminder Notifications**: Notify users when a task deadline is approaching.
