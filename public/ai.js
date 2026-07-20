@@ -62,19 +62,32 @@ function handleSend() {
 
 // Fetch response from server
 async function getAIResponse(userMessage) {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    appendMessage('assistant', 'Please sign in or create an account to talk with TaskSphere AI about your workload.');
+    return;
+  }
+
   showTypingIndicator();
 
   try {
     const response = await fetch('/api/ai/chat', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         message: userMessage,
         history: aiChatHistory
       })
     });
+
+    if (response.status === 401) {
+      removeTypingIndicator();
+      appendMessage('assistant', 'Your session has expired. Please sign in again.');
+      return;
+    }
 
     if (!response.ok) {
       throw new Error('Failed to communicate with AI Assistant');

@@ -1,9 +1,20 @@
-// API Base URL
+// API Base URLs
 const API_URL = '/api/tasks';
+const AUTH_URL = '/api/auth';
 
 // State Management
 let tasks = [];
 let debounceTimer = null;
+let authToken = localStorage.getItem('token') || null;
+let currentUser = null;
+
+try {
+  const storedUser = localStorage.getItem('user');
+  if (storedUser) currentUser = JSON.parse(storedUser);
+} catch (e) {
+  console.error('Error parsing stored user data:', e);
+  localStorage.removeItem('user');
+}
 
 // DOM Elements
 const tasksContainer = document.getElementById('tasks-container');
@@ -12,6 +23,29 @@ const emptyState = document.getElementById('empty-state');
 const taskModal = document.getElementById('task-modal');
 const taskForm = document.getElementById('task-form');
 const modalTitle = document.getElementById('modal-title');
+
+// Auth DOM Elements
+const userProfileSection = document.getElementById('user-profile-section');
+const userInfoBadge = document.getElementById('user-info-badge');
+const userAvatar = document.getElementById('user-avatar');
+const userDisplayName = document.getElementById('user-display-name');
+const logoutBtn = document.getElementById('logout-btn');
+const openAuthBtn = document.getElementById('open-auth-btn');
+
+const authModal = document.getElementById('auth-modal');
+const closeAuthModalBtn = document.getElementById('close-auth-modal-btn');
+const tabLoginBtn = document.getElementById('tab-login-btn');
+const tabRegisterBtn = document.getElementById('tab-register-btn');
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const authAlert = document.getElementById('auth-alert');
+const demoAccountBtn = document.getElementById('demo-account-btn');
+
+const loginEmailInput = document.getElementById('login-email');
+const loginPasswordInput = document.getElementById('login-password');
+const registerNameInput = document.getElementById('register-name');
+const registerEmailInput = document.getElementById('register-email');
+const registerPasswordInput = document.getElementById('register-password');
 
 // Form Fields
 const taskIdInput = document.getElementById('task-id');
@@ -53,14 +87,247 @@ const viewTaskStatus = document.getElementById('view-task-status');
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
   initCustomSelects();
-  fetchTasks();
+  setupAuthEventListeners();
   setupEventListeners();
+  updateAuthUI();
+
+  if (authToken) {
+    verifySession();
+  }
 });
 
-// Event Listeners setup
+// Helper: Get Authorization headers
+function getAuthHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+  return headers;
+}
+
+// Update User Interface based on Login State
+function updateAuthUI() {
+  if (authToken && currentUser) {
+    userInfoBadge.style.display = 'flex';
+    openAuthBtn.style.display = 'none';
+    
+    userAvatar.textContent = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
+    userDisplayName.textContent = currentUser.name || 'User';
+
+    fetchTasks();
+  } else {
+    userInfoBadge.style.display = 'none';
+    openAuthBtn.style.display = 'inline-flex';
+    
+    tasks = [];
+    renderUnauthenticatedState();
+    updateStats();
+  }
+}
+
+// Render UI state when user is not logged in
+function renderUnauthenticatedState() {
+  tasksLoader.style.display = 'none';
+  tasksContainer.style.display = 'none';
+  emptyState.style.display = 'flex';
+  
+  emptyState.innerHTML = `
+    <div class="empty-icon"><i class="fa-solid fa-lock" style="color: var(--primary);"></i></div>
+    <h3>Authentication Required</h3>
+    <p>Please sign in or create an account to view and manage your personal tasks.</p>
+    <button class="btn btn-primary" id="empty-state-auth-btn" style="margin-top: 0.75rem;">
+      <i class="fa-solid fa-right-to-bracket"></i> Sign In / Register
+    </button>
+  `;
+
+  const emptyAuthBtn = document.getElementById('empty-state-auth-btn');
+  if (emptyAuthBtn) {
+    emptyAuthBtn.addEventListener('click', () => openAuthModal());
+  }
+}
+
+// Verify stored token with backend
+async function verifySession() {
+  try {
+    const res = await fetch(`${AUTH_URL}/me`, { headers: getAuthHeaders() });
+    if (!res.ok) {
+      handleLogout(false);
+    } else {
+      const userData = await res.json();
+      currentUser = userData;
+      localStorage.setItem('user', JSON.stringify(userData));
+      userAvatar.textContent = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
+      userDisplayName.textContent = currentUser.name || 'User';
+    }
+  } catch (err) {
+    console.error('Failed to verify session:', err);
+  }
+}
+
+// Setup Auth Modal & Event Listeners
+function setupAuthEventListeners() {
+  openAuthBtn.addEventListener('click', () => openAuthModal());
+  closeAuthModalBtn.addEventListener('click', closeAuthModal);
+  
+  authModal.addEventListener('click', (e) => {
+    if (e.target === authModal) closeAuthModal();
+  });
+
+  logoutBtn.addEventListener('click', () => handleLogout(true));
+
+  tabLoginBtn.addEventListener('click', () => switchAuthTab('login'));
+  tabRegisterBtn.addEventListener('click', () => switchAuthTab('register'));
+
+  loginForm.addEventListener('submit', handleLoginSubmit);
+  registerForm.addEventListener('submit', handleRegisterSubmit);
+  demoAccountBtn.addEventListener('click', handleDemoLogin);
+}
+
+function openAuthModal(tab = 'login') {
+  authModal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  switchAuthTab(tab);
+  hideAuthAlert();
+}
+
+function closeAuthModal() {
+  authModal.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function switchAuthTab(tab) {
+  hideAuthAlert();
+  if (tab === 'login') {
+    tabLoginBtn.classList.add('active');
+    tabRegisterBtn.classList.remove('active');
+    loginForm.style.display = 'flex';
+    registerForm.style.display = 'none';
+  } else {
+    tabRegisterBtn.classList.add('active');
+    tabLoginBtn.classList.remove('active');
+    registerForm.style.display = 'flex';
+    loginForm.style.display = 'none';
+  }
+}
+
+function showAuthAlert(message, type = 'error') {
+  authAlert.className = `auth-alert ${type}`;
+  authAlert.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}"></i> <span>${escapeHTML(message)}</span>`;
+  authAlert.style.display = 'flex';
+}
+
+function hideAuthAlert() {
+  authAlert.style.display = 'none';
+}
+
+// Auth Handlers
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+  const email = loginEmailInput.value.trim();
+  const password = loginPasswordInput.value;
+
+  try {
+    const res = await fetch(`${AUTH_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Login failed');
+
+    onAuthSuccess(data, 'Successfully signed in!');
+  } catch (err) {
+    showAuthAlert(err.message, 'error');
+  }
+}
+
+async function handleRegisterSubmit(e) {
+  e.preventDefault();
+  const name = registerNameInput.value.trim();
+  const email = registerEmailInput.value.trim();
+  const password = registerPasswordInput.value;
+
+  try {
+    const res = await fetch(`${AUTH_URL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Registration failed');
+
+    onAuthSuccess(data, 'Account created successfully!');
+  } catch (err) {
+    showAuthAlert(err.message, 'error');
+  }
+}
+
+async function handleDemoLogin() {
+  loginEmailInput.value = 'demo@tasksphere.com';
+  loginPasswordInput.value = 'password123';
+  
+  try {
+    let res = await fetch(`${AUTH_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'demo@tasksphere.com', password: 'password123' })
+    });
+
+    if (!res.ok) {
+      // If demo user doesn't exist, register demo user
+      res = await fetch(`${AUTH_URL}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Demo User', email: 'demo@tasksphere.com', password: 'password123' })
+      });
+    }
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Demo login failed');
+
+    onAuthSuccess(data, 'Signed in as Demo User!');
+  } catch (err) {
+    showAuthAlert(err.message, 'error');
+  }
+}
+
+function onAuthSuccess(data, message) {
+  authToken = data.token;
+  currentUser = { _id: data._id, name: data.name, email: data.email };
+
+  localStorage.setItem('token', authToken);
+  localStorage.setItem('user', JSON.stringify(currentUser));
+
+  closeAuthModal();
+  updateAuthUI();
+  showToast(message, 'success');
+}
+
+function handleLogout(showNotification = true) {
+  authToken = null;
+  currentUser = null;
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+
+  updateAuthUI();
+  if (showNotification) {
+    showToast('Signed out successfully');
+  }
+}
+
+// Main Task Event Listeners setup
 function setupEventListeners() {
   // Modal toggle
-  openAddBtn.addEventListener('click', () => openModal());
+  openAddBtn.addEventListener('click', () => {
+    if (!authToken) {
+      openAuthModal();
+      showToast('Please sign in to create tasks', 'error');
+      return;
+    }
+    openModal();
+  });
   closeModalBtn.addEventListener('click', closeModal);
   cancelModalBtn.addEventListener('click', closeModal);
 
@@ -75,11 +342,13 @@ function setupEventListeners() {
   // Search & Filter Listeners
   searchInput.addEventListener('input', () => {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(fetchTasks, 300);
+    debounceTimer = setTimeout(() => {
+      if (authToken) fetchTasks();
+    }, 300);
   });
-  filterStatusSelect.addEventListener('change', fetchTasks);
-  filterPrioritySelect.addEventListener('change', fetchTasks);
-  sortBySelect.addEventListener('change', fetchTasks);
+  filterStatusSelect.addEventListener('change', () => { if (authToken) fetchTasks(); });
+  filterPrioritySelect.addEventListener('change', () => { if (authToken) fetchTasks(); });
+  sortBySelect.addEventListener('change', () => { if (authToken) fetchTasks(); });
 
   // Download PDF dropdown toggle
   const downloadDropdownBtn = document.getElementById('download-dropdown-btn');
@@ -87,7 +356,6 @@ function setupEventListeners() {
   downloadDropdownBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     downloadDropdownMenu.classList.toggle('show');
-    // Hide other custom selects
     document.querySelectorAll('.custom-select').forEach(cs => cs.classList.remove('active'));
   });
 
@@ -134,6 +402,11 @@ function showToast(message, type = 'success') {
 
 // Fetch Tasks from API
 async function fetchTasks() {
+  if (!authToken) {
+    renderUnauthenticatedState();
+    return;
+  }
+
   tasksLoader.style.display = 'block';
   tasksContainer.style.display = 'none';
   emptyState.style.display = 'none';
@@ -161,7 +434,17 @@ async function fetchTasks() {
     queryParams.append('sortBy', sortBy);
     queryParams.append('sortOrder', sortOrder);
 
-    const response = await fetch(`${API_URL}?${queryParams.toString()}`);
+    const response = await fetch(`${API_URL}?${queryParams.toString()}`, {
+      headers: getAuthHeaders()
+    });
+
+    if (response.status === 401) {
+      handleLogout(false);
+      openAuthModal();
+      showToast('Session expired. Please sign in again.', 'error');
+      return;
+    }
+
     if (!response.ok) throw new Error('Failed to load tasks');
 
     tasks = await response.json();
@@ -182,6 +465,11 @@ function renderTasks() {
   if (tasks.length === 0) {
     tasksContainer.style.display = 'none';
     emptyState.style.display = 'flex';
+    emptyState.innerHTML = `
+      <div class="empty-icon"><i class="fa-regular fa-clipboard"></i></div>
+      <h3>No tasks found</h3>
+      <p>Try refining your search/filters or create a new task to get started!</p>
+    `;
     return;
   }
 
@@ -216,7 +504,6 @@ function renderTasks() {
     row.className = `task-row ${task.completed ? 'task-completed' : ''}`;
     row.setAttribute('data-id', task._id);
 
-    // Check if task is overdue
     let isOverdue = false;
     let formattedDate = 'No due date';
 
@@ -288,13 +575,11 @@ function renderTasks() {
     const deleteBtn = row.querySelector('.delete-btn');
     deleteBtn.addEventListener('click', () => handleDeleteTask(task._id));
 
-    // Row click listener (for viewing details)
     row.addEventListener('click', (e) => {
-      // Don't trigger details view if clicking checkboxes, edit, or delete buttons
       if (
-        e.target.closest('.col-checkbox') || 
-        e.target.closest('.col-edit') || 
-        e.target.closest('.col-delete') || 
+        e.target.closest('.col-checkbox') ||
+        e.target.closest('.col-edit') ||
+        e.target.closest('.col-delete') ||
         e.target.closest('.task-toggle') ||
         e.target.closest('.edit-btn') ||
         e.target.closest('.delete-btn')
@@ -326,8 +611,14 @@ function updateStats() {
 
 // Modal handling
 function openModal(task = null) {
+  if (!authToken) {
+    openAuthModal();
+    showToast('Please sign in to manage tasks', 'error');
+    return;
+  }
+
   taskModal.classList.add('show');
-  document.body.style.overflow = 'hidden'; // Stop scrolling behind
+  document.body.style.overflow = 'hidden';
 
   if (task) {
     modalTitle.textContent = 'Edit Task';
@@ -337,7 +628,6 @@ function openModal(task = null) {
     taskPrioritySelect.value = task.priority;
 
     if (task.dueDate) {
-      // Format to YYYY-MM-DD
       const date = new Date(task.dueDate);
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -359,9 +649,60 @@ function closeModal() {
   document.body.style.overflow = '';
 }
 
+// View Details Modal handling
+function openViewModal(task) {
+  viewTaskTitle.textContent = task.title;
+  viewTaskDesc.textContent = task.description || 'No description provided.';
+  
+  viewTaskPriority.textContent = task.priority;
+  viewTaskPriority.className = `priority-badge ${task.priority.toLowerCase()}`;
+
+  let formattedDate = 'No due date';
+  let isOverdue = false;
+
+  if (task.dueDate) {
+    const dueDateObj = new Date(task.dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dueDateVal = new Date(dueDateObj);
+    dueDateVal.setHours(0, 0, 0, 0);
+
+    if (dueDateVal < today && !task.completed) {
+      isOverdue = true;
+    }
+
+    formattedDate = dueDateObj.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  viewTaskDue.innerHTML = `<i class="fa-regular fa-calendar"></i> <span>${formattedDate}${isOverdue ? ' (Overdue)' : ''}</span>`;
+  viewTaskDue.className = `due-badge ${isOverdue ? 'overdue' : ''}`;
+
+  viewTaskStatus.textContent = task.completed ? 'Completed' : 'Pending';
+  viewTaskStatus.className = `status-badge ${task.completed ? 'completed' : 'pending'}`;
+
+  viewTaskModal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeViewModal() {
+  viewTaskModal.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
 // Form Submission handling
 async function handleFormSubmit(e) {
   e.preventDefault();
+
+  if (!authToken) {
+    openAuthModal();
+    showToast('Please sign in to manage tasks', 'error');
+    return;
+  }
 
   const id = taskIdInput.value;
   const title = taskTitleInput.value.trim();
@@ -379,19 +720,24 @@ async function handleFormSubmit(e) {
   try {
     let response;
     if (id) {
-      // Edit mode
       response = await fetch(`${API_URL}/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(taskData)
       });
     } else {
-      // Add mode
       response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(taskData)
       });
+    }
+
+    if (response.status === 401) {
+      handleLogout(false);
+      openAuthModal();
+      showToast('Session expired. Please sign in again.', 'error');
+      return;
     }
 
     if (!response.ok) throw new Error('Failed to save task');
@@ -406,12 +752,24 @@ async function handleFormSubmit(e) {
 
 // Toggle Completed Checkbox
 async function toggleTaskCompletion(id, isCompleted) {
+  if (!authToken) {
+    openAuthModal();
+    return;
+  }
+
   try {
     const response = await fetch(`${API_URL}/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ completed: isCompleted })
     });
+
+    if (response.status === 401) {
+      handleLogout(false);
+      openAuthModal();
+      showToast('Session expired. Please sign in again.', 'error');
+      return;
+    }
 
     if (!response.ok) throw new Error('Failed to update status');
 
@@ -424,12 +782,25 @@ async function toggleTaskCompletion(id, isCompleted) {
 
 // Delete Task
 async function handleDeleteTask(id) {
+  if (!authToken) {
+    openAuthModal();
+    return;
+  }
+
   if (!confirm('Are you sure you want to delete this task?')) return;
 
   try {
     const response = await fetch(`${API_URL}/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
+
+    if (response.status === 401) {
+      handleLogout(false);
+      openAuthModal();
+      showToast('Session expired. Please sign in again.', 'error');
+      return;
+    }
 
     if (!response.ok) throw new Error('Failed to delete task');
 
@@ -440,9 +811,112 @@ async function handleDeleteTask(id) {
   }
 }
 
+// PDF Download Functions
+function downloadCurrentTasks() {
+  if (!authToken || tasks.length === 0) {
+    showToast('No tasks available to download', 'error');
+    return;
+  }
+  generatePdf(tasks, 'Current_Filtered_Tasks.pdf');
+}
+
+async function downloadAllTasks() {
+  if (!authToken) {
+    openAuthModal();
+    showToast('Please sign in to download tasks', 'error');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}?sortBy=dueDate&sortOrder=asc`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch all tasks');
+
+    const allTasks = await response.json();
+    if (allTasks.length === 0) {
+      showToast('No tasks available in workspace to download', 'error');
+      return;
+    }
+
+    generatePdf(allTasks, 'All_Workspace_Tasks.pdf');
+  } catch (err) {
+    console.error(err);
+    showToast(err.message || 'Error generating PDF', 'error');
+  }
+}
+
+function generatePdf(taskList, fileName) {
+  const container = document.createElement('div');
+  container.className = 'pdf-print-container';
+
+  const todayStr = new Date().toLocaleDateString(undefined, {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  const userName = currentUser ? currentUser.name : 'Workspace User';
+
+  let tableRows = '';
+  taskList.forEach(task => {
+    let formattedDate = 'No due date';
+    if (task.dueDate) {
+      formattedDate = new Date(task.dueDate).toLocaleDateString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric'
+      });
+    }
+
+    const statusStr = task.completed ? 'Completed' : 'Pending';
+    const descStr = task.description ? escapeHTML(task.description) : '-';
+
+    tableRows += `
+      <tr>
+        <td><strong>${escapeHTML(task.title)}</strong></td>
+        <td class="col-desc">${descStr}</td>
+        <td>${task.priority}</td>
+        <td>${formattedDate}</td>
+        <td>${statusStr}</td>
+      </tr>
+    `;
+  });
+
+  container.innerHTML = `
+    <div class="pdf-print-header">
+      <h2>TaskSphere Summary Report</h2>
+      <p>User: ${escapeHTML(userName)} | Generated on ${todayStr} | Total Tasks: ${taskList.length}</p>
+    </div>
+    <div class="tasks-table-wrapper">
+      <table class="tasks-table">
+        <thead>
+          <tr>
+            <th>Task Title</th>
+            <th class="col-desc">Description</th>
+            <th>Priority</th>
+            <th>Due Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  const opt = {
+    margin: 10,
+    filename: fileName,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+  };
+
+  html2pdf().set(opt).from(container).save();
+}
+
 // Escape HTML helper to prevent XSS injection
 function escapeHTML(str) {
-  return str.replace(/[&<>'"]/g,
+  if (!str) return '';
+  return String(str).replace(/[&<>'"]/g,
     tag => ({
       '&': '&amp;',
       '<': '&lt;',
@@ -498,7 +972,7 @@ function initCustomSelects() {
           select.value = opt.value;
           select.dispatchEvent(new Event('change'));
           customSelect.classList.remove('active');
-          syncCustomSelect(select);
+          syncCustomSelect(select.id);
         });
 
         optionsContainer.appendChild(optionDiv);
@@ -512,284 +986,47 @@ function initCustomSelects() {
       document.querySelectorAll('.custom-select').forEach(cs => {
         if (cs !== customSelect) cs.classList.remove('active');
       });
+      const dropdownMenu = document.getElementById('download-dropdown-menu');
+      if (dropdownMenu) dropdownMenu.classList.remove('show');
+
       customSelect.classList.toggle('active');
+    });
+
+    select.addEventListener('change', () => {
+      syncCustomSelect(select.id);
     });
   });
 
   document.addEventListener('click', () => {
-    document.querySelectorAll('.custom-select').forEach(cs => {
-      cs.classList.remove('active');
-    });
+    document.querySelectorAll('.custom-select').forEach(cs => cs.classList.remove('active'));
   });
 }
 
-function syncCustomSelect(select) {
-  const customSelect = select.nextElementSibling;
-  if (!customSelect || !customSelect.classList.contains('custom-select')) return;
+function syncCustomSelect(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  const customSelect = document.querySelector(`.custom-select[data-select-id="${selectId}"]`);
+  if (!customSelect) return;
 
-  const trigger = customSelect.querySelector('.custom-select-trigger span');
+  const triggerSpan = customSelect.querySelector('.custom-select-trigger span');
   const options = customSelect.querySelectorAll('.custom-option');
 
-  const selectedOption = Array.from(select.options).find(opt => opt.value === select.value);
-  if (selectedOption) {
-    trigger.textContent = selectedOption.textContent;
-  }
+  Array.from(select.options).forEach(opt => {
+    if (opt.value === select.value && triggerSpan) {
+      triggerSpan.textContent = opt.textContent;
+    }
+  });
 
-  options.forEach(optDiv => {
-    if (optDiv.getAttribute('data-value') === select.value) {
-      optDiv.classList.add('selected');
+  options.forEach(optionDiv => {
+    if (optionDiv.getAttribute('data-value') === select.value) {
+      optionDiv.classList.add('selected');
     } else {
-      optDiv.classList.remove('selected');
+      optionDiv.classList.remove('selected');
     }
   });
 }
 
 function syncAllCustomSelects() {
-  document.querySelectorAll('select').forEach(syncCustomSelect);
-}
-
-
-function createPrintableTable(tasksList) {
-  const tableWrapper = document.createElement('div');
-  tableWrapper.className = 'tasks-table-wrapper';
-  tableWrapper.setAttribute('style', 'width: 100% !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important; overflow: visible !important; background: #ffffff !important; box-sizing: border-box !important;');
-
-  const table = document.createElement('table');
-  table.className = 'tasks-table';
-  table.setAttribute('style', 'width: 100% !important; border-collapse: separate !important; border-spacing: 0 !important; text-align: left !important; background-color: #ffffff !important;');
-  
-  const thStyle = 'background-color: #f8fafc !important; color: #475569 !important; font-size: 11px !important; font-weight: 600 !important; text-transform: uppercase !important; border-bottom: 1px solid #e2e8f0 !important; padding: 10px !important; font-family: Outfit, sans-serif !important;';
-  
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th class="col-task" style="width: 25%; ${thStyle}">Task</th>
-        <th class="col-desc" style="width: 35%; ${thStyle}">Description</th>
-        <th class="col-priority" style="width: 13%; ${thStyle}">Priority</th>
-        <th class="col-due" style="width: 15%; ${thStyle}">Due Date</th>
-        <th class="col-status" style="width: 12%; ${thStyle}">Status</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  `;
-  
-  const tbody = table.querySelector('tbody');
-  const tdStyle = 'padding: 10px !important; font-size: 11px !important; border-bottom: 1px solid #e2e8f0 !important; color: #0f172a !important; vertical-align: middle !important; font-family: "Plus Jakarta Sans", sans-serif !important;';
-
-  tasksList.forEach(task => {
-    const row = document.createElement('tr');
-    row.className = `task-row ${task.completed ? 'task-completed' : ''}`;
-    row.setAttribute('style', 'transition: none !important; background-color: #ffffff !important;');
-    
-    let isOverdue = false;
-    let formattedDate = 'No due date';
-    
-    if (task.dueDate) {
-      const dueDateObj = new Date(task.dueDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const dueDateVal = new Date(dueDateObj);
-      dueDateVal.setHours(0, 0, 0, 0);
-      
-      if (dueDateVal < today && !task.completed) {
-        isOverdue = true;
-      }
-      
-      formattedDate = dueDateObj.toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    }
-
-    row.innerHTML = `
-      <td class="col-task" style="${tdStyle}">
-        <span class="task-title" style="font-weight: 600; font-family: Outfit, sans-serif !important;">${escapeHTML(task.title)}</span>
-      </td>
-      <td class="col-desc" style="${tdStyle} white-space: normal !important; word-break: break-word !important; max-width: none !important; overflow: visible !important; text-overflow: clip !important;">
-        <span class="task-desc" style="white-space: normal !important; word-break: break-word !important;">${task.description ? escapeHTML(task.description) : '<span class="text-muted-placeholder" style="color: #94a3b8 !important;">-</span>'}</span>
-      </td>
-      <td class="col-priority" style="${tdStyle}">
-        <span class="priority-badge ${task.priority.toLowerCase()}">${task.priority}</span>
-      </td>
-      <td class="col-due" style="${tdStyle}">
-        <span class="due-badge ${isOverdue ? 'overdue' : ''}">
-          <i class="fa-regular fa-calendar"></i>
-          <span>${formattedDate}${isOverdue ? ' (Overdue)' : ''}</span>
-        </span>
-      </td>
-      <td class="col-status" style="${tdStyle}">
-        <span class="status-badge ${task.completed ? 'completed' : 'pending'}">${task.completed ? 'Completed' : 'Pending'}</span>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
-
-  tableWrapper.appendChild(table);
-  return tableWrapper;
-}
-
-async function downloadCurrentTasks() {
-  if (tasks.length === 0) {
-    showToast('No tasks to download', 'error');
-    return;
-  }
-
-  showToast('Generating PDF...');
-
-  try {
-    const printContainer = document.createElement('div');
-    printContainer.className = 'pdf-print-container';
-
-    // Get filter labels
-    const statusLabel = filterStatusSelect.options[filterStatusSelect.selectedIndex].text;
-    const priorityLabel = filterPrioritySelect.options[filterPrioritySelect.selectedIndex].text;
-    const sortLabel = sortBySelect.options[sortBySelect.selectedIndex].text;
-
-    printContainer.innerHTML = `
-      <div class="pdf-print-header">
-        <h2>TaskSphere - Tasks Report</h2>
-        <p style="margin-top: 4px; font-size: 12px; color: var(--text-secondary);">
-          <strong>Status:</strong> ${statusLabel} | 
-          <strong>Priority:</strong> ${priorityLabel} | 
-          <strong>Sort:</strong> ${sortLabel}
-        </p>
-        <p style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
-          Generated on: ${new Date().toLocaleString()}
-        </p>
-      </div>
-    `;
-
-    const tableElement = createPrintableTable(tasks);
-    printContainer.appendChild(tableElement);
-
-    const opt = {
-      margin: 0.4,
-      filename: 'tasks_current_view.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    const worker = html2pdf().from(printContainer).set(opt).toContainer();
-    await worker;
-    await new Promise(resolve => setTimeout(resolve, 300));
-    await worker.toCanvas().toPdf().save();
-    showToast('PDF downloaded successfully');
-  } catch (error) {
-    console.error('PDF Generation Error:', error);
-    showToast('Failed to generate PDF', 'error');
-  }
-}
-
-async function downloadAllTasks() {
-  showToast('Fetching all tasks...');
-
-  try {
-    // Get sorting parameters
-    let sortBy = 'dueDate';
-    let sortOrder = 'asc';
-
-    if (sortBySelect.value === 'dueDateDesc') {
-      sortBy = 'dueDate';
-      sortOrder = 'desc';
-    } else if (sortBySelect.value === 'createdAt') {
-      sortBy = 'createdAt';
-      sortOrder = 'desc';
-    }
-
-    const response = await fetch(`${API_URL}?sortBy=${sortBy}&sortOrder=${sortOrder}`);
-    if (!response.ok) throw new Error('Failed to fetch all tasks');
-
-    const allTasks = await response.json();
-    if (allTasks.length === 0) {
-      showToast('No tasks found to download', 'error');
-      return;
-    }
-
-    showToast('Generating PDF...');
-
-    const printContainer = document.createElement('div');
-    printContainer.className = 'pdf-print-container';
-
-    printContainer.innerHTML = `
-      <div class="pdf-print-header">
-        <h2>TaskSphere - All Tasks Report</h2>
-        <p style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
-          Generated on: ${new Date().toLocaleString()}
-        </p>
-      </div>
-    `;
-
-    const tableElement = createPrintableTable(allTasks);
-    printContainer.appendChild(tableElement);
-
-    const opt = {
-      margin: 0.4,
-      filename: 'tasks_all.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    const worker = html2pdf().from(printContainer).set(opt).toContainer();
-    await worker;
-    await new Promise(resolve => setTimeout(resolve, 300));
-    await worker.toCanvas().toPdf().save();
-    showToast('PDF downloaded successfully');
-  } catch (error) {
-    console.error('PDF Generation Error:', error);
-    showToast('Failed to generate PDF', 'error');
-  }
-}
-
-// Task Detail View Modal toggles
-function openViewModal(task) {
-  viewTaskTitle.textContent = task.title;
-  viewTaskDesc.textContent = task.description || 'No description provided.';
-  
-  // Priority Badge Styling
-  viewTaskPriority.className = `priority-badge ${task.priority.toLowerCase()}`;
-  viewTaskPriority.textContent = task.priority;
-  
-  // Overdue status check and date layout
-  let formattedDate = 'No due date';
-  let isOverdue = false;
-  
-  if (task.dueDate) {
-    const dueDateObj = new Date(task.dueDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const dueDateVal = new Date(dueDateObj);
-    dueDateVal.setHours(0, 0, 0, 0);
-    
-    if (dueDateVal < today && !task.completed) {
-      isOverdue = true;
-    }
-    
-    formattedDate = dueDateObj.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }
-  
-  viewTaskDue.className = `due-badge ${isOverdue ? 'overdue' : ''}`;
-  viewTaskDue.innerHTML = `<i class="fa-regular fa-calendar"></i> <span>${formattedDate}${isOverdue ? ' (Overdue)' : ''}</span>`;
-  
-  // Status Badge Styling
-  viewTaskStatus.className = `status-badge ${task.completed ? 'completed' : 'pending'}`;
-  viewTaskStatus.textContent = task.completed ? 'Completed' : 'Pending';
-
-  viewTaskModal.classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeViewModal() {
-  viewTaskModal.classList.remove('show');
-  document.body.style.overflow = '';
+  const selects = document.querySelectorAll('select');
+  selects.forEach(select => syncCustomSelect(select.id));
 }

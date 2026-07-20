@@ -1,19 +1,27 @@
 const Task = require('../models/Task');
 
-// @desc    Get all tasks with search, filter, and sort
+// @desc    Get all user tasks with search, filter, and sort
 // @route   GET /api/tasks
-// @access  Public
+// @access  Private
 exports.getTasks = async (req, res) => {
   try {
     const { search, completed, priority, sortBy, sortOrder } = req.query;
-    const query = {};
+    
+    // Always restrict query to logged-in user's tasks
+    const query = { user: req.user._id };
 
     // Search query matching title or description (case-insensitive)
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+      query.$and = [
+        { user: req.user._id },
+        {
+          $or: [
+            { title: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } }
+          ]
+        }
       ];
+      delete query.user; // query user is inside $and
     }
 
     // Filter by completed status
@@ -45,7 +53,7 @@ exports.getTasks = async (req, res) => {
 
 // @desc    Create new task
 // @route   POST /api/tasks
-// @access  Public
+// @access  Private
 exports.createTask = async (req, res) => {
   try {
     const { title, description, priority, dueDate } = req.body;
@@ -55,6 +63,7 @@ exports.createTask = async (req, res) => {
     }
 
     const task = new Task({
+      user: req.user._id,
       title,
       description,
       priority,
@@ -70,7 +79,7 @@ exports.createTask = async (req, res) => {
 
 // @desc    Update a task
 // @route   PUT /api/tasks/:id
-// @access  Public
+// @access  Private
 exports.updateTask = async (req, res) => {
   try {
     const { title, description, priority, dueDate, completed } = req.body;
@@ -79,6 +88,11 @@ exports.updateTask = async (req, res) => {
     let task = await Task.findById(taskId);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Make sure user owns task
+    if (task.user.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized to update this task' });
     }
 
     // Update fields if provided
@@ -97,15 +111,22 @@ exports.updateTask = async (req, res) => {
 
 // @desc    Delete a task
 // @route   DELETE /api/tasks/:id
-// @access  Public
+// @access  Private
 exports.deleteTask = async (req, res) => {
   try {
     const taskId = req.params.id;
-    const task = await Task.findByIdAndDelete(taskId);
+    const task = await Task.findById(taskId);
 
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
+
+    // Make sure user owns task
+    if (task.user.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized to delete this task' });
+    }
+
+    await Task.findByIdAndDelete(taskId);
 
     res.status(200).json({ message: 'Task deleted successfully', id: taskId });
   } catch (error) {

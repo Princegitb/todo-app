@@ -27,9 +27,15 @@
         <i class="fa-solid fa-circle-check logo-icon"></i>
         <h1>TaskSphere</h1>
       </div>
-      <div class="user-profile">
-        <div class="avatar">U</div>
-        <span class="username">Workspace</span>
+      <div class="user-profile" id="user-profile-section">
+        <div class="user-info-badge" id="user-info-badge" style="display: none;">
+          <div class="avatar" id="user-avatar">U</div>
+          <span class="username" id="user-display-name">User</span>
+          <button class="btn-logout" id="logout-btn" title="Sign Out"><i class="fa-solid fa-right-from-bracket"></i></button>
+        </div>
+        <button class="btn btn-primary btn-auth-trigger" id="open-auth-btn" style="display: inline-flex;">
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In / Register
+        </button>
       </div>
     </header>
 
@@ -226,6 +232,71 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="close-view-modal-bottom-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Modal (Sign In / Register) -->
+  <div class="modal-backdrop" id="auth-modal">
+    <div class="modal auth-modal-card">
+      <div class="modal-header">
+        <div class="auth-header-title">
+          <i class="fa-solid fa-shield-halved auth-icon"></i>
+          <h3 id="auth-modal-title">Welcome to TaskSphere</h3>
+        </div>
+        <button class="close-btn" id="close-auth-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <!-- Tab Controls -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login-btn"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+        <button class="auth-tab" id="tab-register-btn"><i class="fa-solid fa-user-plus"></i> Create Account</button>
+      </div>
+
+      <div class="modal-body auth-body">
+        <div id="auth-alert" class="auth-alert" style="display: none;"></div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="auth-form">
+          <div class="form-group">
+            <label for="login-email"><i class="fa-solid fa-envelope"></i> Email Address</label>
+            <input type="email" id="login-email" placeholder="name@example.com" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
+            <input type="password" id="login-password" placeholder="••••••••" required minlength="6">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="login-submit-btn">
+            <i class="fa-solid fa-right-to-bracket"></i> Sign In
+          </button>
+          
+          <div class="auth-divider">
+            <span>or test quickly</span>
+          </div>
+
+          <button type="button" class="btn btn-secondary btn-block" id="demo-account-btn">
+            <i class="fa-solid fa-flask"></i> Sign In as Demo User
+          </button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" class="auth-form" style="display: none;">
+          <div class="form-group">
+            <label for="register-name"><i class="fa-solid fa-user"></i> Full Name</label>
+            <input type="text" id="register-name" placeholder="John Doe" required>
+          </div>
+          <div class="form-group">
+            <label for="register-email"><i class="fa-solid fa-envelope"></i> Email Address</label>
+            <input type="email" id="register-email" placeholder="john@example.com" required>
+          </div>
+          <div class="form-group">
+            <label for="register-password"><i class="fa-solid fa-lock"></i> Password</label>
+            <input type="password" id="register-password" placeholder="At least 6 characters" required minlength="6">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="register-submit-btn">
+            <i class="fa-solid fa-user-plus"></i> Create Account
+          </button>
+        </form>
       </div>
     </div>
   </div>

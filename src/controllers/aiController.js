@@ -11,8 +11,8 @@ exports.chatWithAI = async (req, res) => {
       return res.status(400).json({ message: 'User message is required' });
     }
 
-    // 1. Retrieve all tasks from database to build the AI's context
-    const tasks = await Task.find({}).sort({ dueDate: 1, createdAt: -1 });
+    // 1. Retrieve logged-in user's tasks from database to build the AI's context
+    const tasks = await Task.find({ user: req.user._id }).sort({ dueDate: 1, createdAt: -1 });
 
     const formattedTasks = tasks.map(t => {
       const status = t.completed ? 'Completed' : 'Pending';
