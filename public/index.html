@@ -232,6 +232,14 @@
     </div>
   </div>
 
+  <!-- Clerk Sign In Modal Container -->
+  <div class="modal-backdrop" id="clerk-modal-backdrop" style="display: none; justify-content: center; align-items: center;">
+    <div style="position: relative; max-width: 480px; width: 100%; margin: auto; display: flex; justify-content: center;">
+      <button class="close-btn" id="close-clerk-modal-btn" style="position: absolute; right: 8px; top: 8px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; z-index: 10001; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-xmark"></i></button>
+      <div id="clerk-sign-in-mount"></div>
+    </div>
+  </div>
+
   <!-- Auth Modal (Sign In / Register) -->
   <div class="modal-backdrop" id="auth-modal">
     <div class="modal auth-modal-card">

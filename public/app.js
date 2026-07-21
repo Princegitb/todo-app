@@ -82,11 +82,25 @@ async function initClerk() {
 
     clerkKeyConfigured = true;
 
+    // Helper to extract Clerk Frontend API host for downloading UI components
+    function getClerkScriptUrl(publishableKey) {
+      try {
+        const keyBody = publishableKey.replace(/^pk_(test|live)_/, '');
+        const frontendApi = atob(keyBody).replace(/\$$/, '');
+        if (frontendApi && frontendApi.includes('.')) {
+          return `https://${frontendApi}/npm/@clerk/clerk-js@5/dist/clerk.browser.js`;
+        }
+      } catch (e) {
+        console.warn('Could not parse Clerk Frontend API host:', e);
+      }
+      return 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+    }
+
     // Dynamically inject Clerk JS SDK with data-clerk-publishable-key attribute
     const script = document.createElement('script');
     script.setAttribute('data-clerk-publishable-key', config.clerkPublishableKey);
     script.async = true;
-    script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+    script.src = getClerkScriptUrl(config.clerkPublishableKey);
     script.crossOrigin = 'anonymous';
 
     script.onload = async () => {
@@ -103,6 +117,7 @@ async function initClerk() {
 
         const updateUIState = (user) => {
           if (user) {
+            closeClerkSignInModal();
             if (openAuthBtn) openAuthBtn.style.display = 'none';
             if (userBtnDiv) {
               userBtnDiv.style.display = 'block';
@@ -177,12 +192,44 @@ async function getAuthHeaders() {
 // Open Clerk Sign In Modal
 function openAuthModal() {
   if (clerk) {
-    clerk.openSignIn();
+    try {
+      if (typeof clerk.openSignIn === 'function') {
+        clerk.openSignIn();
+        return;
+      }
+    } catch (err) {
+      console.warn('clerk.openSignIn error, using mountSignIn fallback:', err);
+    }
+    mountClerkSignInModal();
   } else if (!clerkKeyConfigured) {
     showToast('Please add CLERK_PUBLISHABLE_KEY to your Render Environment Variables.', 'error');
   } else {
     showToast('Clerk authentication SDK is loading, please try again in a moment.', 'error');
   }
+}
+
+function mountClerkSignInModal() {
+  const backdrop = document.getElementById('clerk-modal-backdrop');
+  const mountDiv = document.getElementById('clerk-sign-in-mount');
+  if (backdrop && mountDiv && clerk) {
+    backdrop.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    try {
+      clerk.mountSignIn(mountDiv);
+    } catch (e) {
+      console.error('clerk.mountSignIn error:', e);
+    }
+  }
+}
+
+function closeClerkSignInModal() {
+  const backdrop = document.getElementById('clerk-modal-backdrop');
+  const mountDiv = document.getElementById('clerk-sign-in-mount');
+  if (backdrop) backdrop.style.display = 'none';
+  if (mountDiv && clerk) {
+    try { clerk.unmountSignIn(mountDiv); } catch (e) {}
+  }
+  document.body.style.overflow = '';
 }
 
 // Render UI state when user is not logged in
@@ -262,6 +309,16 @@ function setupEventListeners() {
   viewTaskModal.addEventListener('click', (e) => {
     if (e.target === viewTaskModal) closeViewModal();
   });
+
+  // Clerk Modal close handlers
+  const closeClerkBtn = document.getElementById('close-clerk-modal-btn');
+  const clerkBackdrop = document.getElementById('clerk-modal-backdrop');
+  if (closeClerkBtn) closeClerkBtn.addEventListener('click', closeClerkSignInModal);
+  if (clerkBackdrop) {
+    clerkBackdrop.addEventListener('click', (e) => {
+      if (e.target === clerkBackdrop) closeClerkSignInModal();
+    });
+  }
 }
 
 // Toast Notifications helper
