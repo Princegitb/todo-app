@@ -61,6 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initClerk();
 });
 
+let clerkKeyConfigured = true;
+
 // Initialize Clerk Authentication SDK
 async function initClerk() {
   try {
@@ -68,11 +70,12 @@ async function initClerk() {
     const config = await res.json();
 
     if (!config.clerkPublishableKey || config.clerkPublishableKey === 'your_clerk_publishable_key_here') {
-      console.warn('Clerk Publishable Key is not configured in .env');
+      console.warn('Clerk Publishable Key is not configured in environment variables');
+      clerkKeyConfigured = false;
       renderUnauthenticatedState();
       if (openAuthBtn) {
         openAuthBtn.style.display = 'inline-flex';
-        openAuthBtn.onclick = () => showToast('Please set your CLERK_PUBLISHABLE_KEY in the .env file to enable authentication.', 'error');
+        openAuthBtn.onclick = () => openAuthModal();
       }
       return;
     }
@@ -95,6 +98,7 @@ async function initClerk() {
     const clerkInstance = new window.Clerk(config.clerkPublishableKey);
     await clerkInstance.load();
     clerk = clerkInstance;
+    clerkKeyConfigured = true;
 
     const userBtnDiv = document.getElementById('clerk-user-button');
 
@@ -165,8 +169,10 @@ async function getAuthHeaders() {
 function openAuthModal() {
   if (clerk) {
     clerk.openSignIn();
+  } else if (!clerkKeyConfigured) {
+    showToast('Please add CLERK_PUBLISHABLE_KEY to your Render Environment Variables.', 'error');
   } else {
-    showToast('Clerk authentication is loading or not configured.', 'error');
+    showToast('Clerk authentication SDK is loading, please try again in a moment.', 'error');
   }
 }
 
