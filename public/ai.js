@@ -91,7 +91,10 @@ function handleSend() {
 
 // Fetch response from server
 async function getAIResponse(userMessage) {
-  const token = localStorage.getItem('token');
+  let token = null;
+  if (typeof window.getAuthToken === 'function') {
+    token = await window.getAuthToken();
+  }
   if (!token) {
     appendMessage('assistant', 'Please sign in or create an account to talk with TaskSphere AI about your workload.');
     return;

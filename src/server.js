@@ -7,6 +7,8 @@ const taskRoutes = require('./routes/taskRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const authRoutes = require('./routes/authRoutes');
 
+const { clerkMiddleware } = require('@clerk/express');
+
 // Load environment variables
 dotenv.config();
 
@@ -18,6 +20,7 @@ const app = express();
 // Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(clerkMiddleware());
 
 // Request Logger
 app.use((req, res, next) => {
@@ -25,8 +28,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// API Config Route
+app.get('/api/config', (req, res) => {
+  res.json({
+    clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY || ''
+  });
+});
+
 // API Routes
-app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/ai', aiRoutes);
 

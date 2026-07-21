@@ -1,20 +1,10 @@
 // API Base URLs
 const API_URL = '/api/tasks';
-const AUTH_URL = '/api/auth';
 
 // State Management
 let tasks = [];
 let debounceTimer = null;
-let authToken = localStorage.getItem('token') || null;
-let currentUser = null;
-
-try {
-  const storedUser = localStorage.getItem('user');
-  if (storedUser) currentUser = JSON.parse(storedUser);
-} catch (e) {
-  console.error('Error parsing stored user data:', e);
-  localStorage.removeItem('user');
-}
+let clerk = null;
 
 // DOM Elements
 const tasksContainer = document.getElementById('tasks-container');
@@ -25,27 +15,7 @@ const taskForm = document.getElementById('task-form');
 const modalTitle = document.getElementById('modal-title');
 
 // Auth DOM Elements
-const userProfileSection = document.getElementById('user-profile-section');
-const userInfoBadge = document.getElementById('user-info-badge');
-const userAvatar = document.getElementById('user-avatar');
-const userDisplayName = document.getElementById('user-display-name');
-const logoutBtn = document.getElementById('logout-btn');
 const openAuthBtn = document.getElementById('open-auth-btn');
-
-const authModal = document.getElementById('auth-modal');
-const closeAuthModalBtn = document.getElementById('close-auth-modal-btn');
-const tabLoginBtn = document.getElementById('tab-login-btn');
-const tabRegisterBtn = document.getElementById('tab-register-btn');
-const loginForm = document.getElementById('login-form');
-const registerForm = document.getElementById('register-form');
-const authAlert = document.getElementById('auth-alert');
-const demoAccountBtn = document.getElementById('demo-account-btn');
-
-const loginEmailInput = document.getElementById('login-email');
-const loginPasswordInput = document.getElementById('login-password');
-const registerNameInput = document.getElementById('register-name');
-const registerEmailInput = document.getElementById('register-email');
-const registerPasswordInput = document.getElementById('register-password');
 
 // Form Fields
 const taskIdInput = document.getElementById('task-id');
@@ -87,49 +57,116 @@ const viewTaskStatus = document.getElementById('view-task-status');
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
   initCustomSelects();
-  setupAuthEventListeners();
   setupEventListeners();
-  updateAuthUI();
-
-  if (authToken) {
-    verifySession();
-  }
+  initClerk();
 });
 
+// Initialize Clerk Authentication SDK
+async function initClerk() {
+  try {
+    const res = await fetch('/api/config');
+    const config = await res.json();
+
+    if (!config.clerkPublishableKey || config.clerkPublishableKey === 'your_clerk_publishable_key_here') {
+      console.warn('Clerk Publishable Key is not configured in .env');
+      renderUnauthenticatedState();
+      if (openAuthBtn) {
+        openAuthBtn.style.display = 'inline-flex';
+        openAuthBtn.onclick = () => showToast('Please set your CLERK_PUBLISHABLE_KEY in the .env file to enable authentication.', 'error');
+      }
+      return;
+    }
+
+    // Wait for window.Clerk constructor if script is still loading
+    if (!window.Clerk) {
+      let retries = 0;
+      while (!window.Clerk && retries < 30) {
+        await new Promise(r => setTimeout(r, 100));
+        retries++;
+      }
+    }
+
+    if (!window.Clerk) {
+      console.error('Clerk JS SDK script failed to load.');
+      renderUnauthenticatedState();
+      return;
+    }
+
+    const clerkInstance = new window.Clerk(config.clerkPublishableKey);
+    await clerkInstance.load();
+    clerk = clerkInstance;
+
+    const userBtnDiv = document.getElementById('clerk-user-button');
+
+    const updateUIState = (user) => {
+      if (user) {
+        if (openAuthBtn) openAuthBtn.style.display = 'none';
+        if (userBtnDiv) {
+          userBtnDiv.style.display = 'block';
+          clerk.mountUserButton(userBtnDiv);
+        }
+        const displayName = user.fullName || user.firstName || user.primaryEmailAddress?.emailAddress || 'User';
+        if (typeof showAIChatBubble === 'function') {
+          showAIChatBubble(displayName);
+        }
+        fetchTasks();
+      } else {
+        if (userBtnDiv) {
+          try { clerk.unmountUserButton(userBtnDiv); } catch (e) {}
+          userBtnDiv.style.display = 'none';
+        }
+        if (openAuthBtn) {
+          openAuthBtn.style.display = 'inline-flex';
+          openAuthBtn.onclick = () => openAuthModal();
+        }
+
+        if (typeof hideAIChatBubble === 'function') {
+          hideAIChatBubble();
+        }
+
+        tasks = [];
+        renderUnauthenticatedState();
+        updateStats();
+      }
+    };
+
+    clerk.addListener(({ user }) => {
+      updateUIState(user);
+    });
+
+    updateUIState(clerk.user);
+
+  } catch (err) {
+    console.error('Error initializing Clerk:', err);
+    renderUnauthenticatedState();
+  }
+}
+
+// Get Clerk Auth Token
+async function getAuthToken() {
+  if (clerk && clerk.session) {
+    return await clerk.session.getToken();
+  }
+  return null;
+}
+window.getAuthToken = getAuthToken;
+
 // Helper: Get Authorization headers
-function getAuthHeaders() {
+async function getAuthHeaders() {
   const headers = { 'Content-Type': 'application/json' };
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
+  const token = await getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
 }
 
-// Update User Interface based on Login State
-function updateAuthUI() {
-  if (authToken && currentUser) {
-    userInfoBadge.style.display = 'flex';
-    openAuthBtn.style.display = 'none';
-    
-    userAvatar.textContent = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
-    userDisplayName.textContent = currentUser.name || 'User';
-
-    if (typeof showAIChatBubble === 'function') {
-      showAIChatBubble(currentUser.name);
-    }
-
-    fetchTasks();
+// Open Clerk Sign In Modal
+function openAuthModal() {
+  if (clerk) {
+    clerk.openSignIn();
   } else {
-    userInfoBadge.style.display = 'none';
-    openAuthBtn.style.display = 'inline-flex';
-    
-    if (typeof hideAIChatBubble === 'function') {
-      hideAIChatBubble();
-    }
-
-    tasks = [];
-    renderUnauthenticatedState();
-    updateStats();
+    showToast('Clerk authentication is loading or not configured.', 'error');
   }
 }
 
@@ -142,7 +179,7 @@ function renderUnauthenticatedState() {
   emptyState.innerHTML = `
     <div class="empty-icon"><i class="fa-solid fa-lock" style="color: var(--primary);"></i></div>
     <h3>Authentication Required</h3>
-    <p>Please sign in or create an account to view and manage your personal tasks.</p>
+    <p>Please sign in or create an account with Clerk to view and manage your personal tasks.</p>
     <button class="btn btn-primary" id="empty-state-auth-btn" style="margin-top: 0.75rem;">
       <i class="fa-solid fa-right-to-bracket"></i> Sign In / Register
     </button>
@@ -154,182 +191,11 @@ function renderUnauthenticatedState() {
   }
 }
 
-// Verify stored token with backend
-async function verifySession() {
-  try {
-    const res = await fetch(`${AUTH_URL}/me`, { headers: getAuthHeaders() });
-    if (!res.ok) {
-      handleLogout(false);
-    } else {
-      const userData = await res.json();
-      currentUser = userData;
-      localStorage.setItem('user', JSON.stringify(userData));
-      userAvatar.textContent = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
-      userDisplayName.textContent = currentUser.name || 'User';
-    }
-  } catch (err) {
-    console.error('Failed to verify session:', err);
-  }
-}
-
-// Setup Auth Modal & Event Listeners
-function setupAuthEventListeners() {
-  openAuthBtn.addEventListener('click', () => openAuthModal());
-  closeAuthModalBtn.addEventListener('click', closeAuthModal);
-  
-  authModal.addEventListener('click', (e) => {
-    if (e.target === authModal) closeAuthModal();
-  });
-
-  logoutBtn.addEventListener('click', () => handleLogout(true));
-
-  tabLoginBtn.addEventListener('click', () => switchAuthTab('login'));
-  tabRegisterBtn.addEventListener('click', () => switchAuthTab('register'));
-
-  loginForm.addEventListener('submit', handleLoginSubmit);
-  registerForm.addEventListener('submit', handleRegisterSubmit);
-  demoAccountBtn.addEventListener('click', handleDemoLogin);
-}
-
-function openAuthModal(tab = 'login') {
-  authModal.classList.add('show');
-  document.body.style.overflow = 'hidden';
-  switchAuthTab(tab);
-  hideAuthAlert();
-}
-
-function closeAuthModal() {
-  authModal.classList.remove('show');
-  document.body.style.overflow = '';
-}
-
-function switchAuthTab(tab) {
-  hideAuthAlert();
-  if (tab === 'login') {
-    tabLoginBtn.classList.add('active');
-    tabRegisterBtn.classList.remove('active');
-    loginForm.style.display = 'flex';
-    registerForm.style.display = 'none';
-  } else {
-    tabRegisterBtn.classList.add('active');
-    tabLoginBtn.classList.remove('active');
-    registerForm.style.display = 'flex';
-    loginForm.style.display = 'none';
-  }
-}
-
-function showAuthAlert(message, type = 'error') {
-  authAlert.className = `auth-alert ${type}`;
-  authAlert.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}"></i> <span>${escapeHTML(message)}</span>`;
-  authAlert.style.display = 'flex';
-}
-
-function hideAuthAlert() {
-  authAlert.style.display = 'none';
-}
-
-// Auth Handlers
-async function handleLoginSubmit(e) {
-  e.preventDefault();
-  const email = loginEmailInput.value.trim();
-  const password = loginPasswordInput.value;
-
-  try {
-    const res = await fetch(`${AUTH_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Login failed');
-
-    onAuthSuccess(data, 'Successfully signed in!');
-  } catch (err) {
-    showAuthAlert(err.message, 'error');
-  }
-}
-
-async function handleRegisterSubmit(e) {
-  e.preventDefault();
-  const name = registerNameInput.value.trim();
-  const email = registerEmailInput.value.trim();
-  const password = registerPasswordInput.value;
-
-  try {
-    const res = await fetch(`${AUTH_URL}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password })
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Registration failed');
-
-    onAuthSuccess(data, 'Account created successfully!');
-  } catch (err) {
-    showAuthAlert(err.message, 'error');
-  }
-}
-
-async function handleDemoLogin() {
-  loginEmailInput.value = 'demo@tasksphere.com';
-  loginPasswordInput.value = 'password123';
-  
-  try {
-    let res = await fetch(`${AUTH_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'demo@tasksphere.com', password: 'password123' })
-    });
-
-    if (!res.ok) {
-      // If demo user doesn't exist, register demo user
-      res = await fetch(`${AUTH_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Demo User', email: 'demo@tasksphere.com', password: 'password123' })
-      });
-    }
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Demo login failed');
-
-    onAuthSuccess(data, 'Signed in as Demo User!');
-  } catch (err) {
-    showAuthAlert(err.message, 'error');
-  }
-}
-
-function onAuthSuccess(data, message) {
-  authToken = data.token;
-  currentUser = { _id: data._id, name: data.name, email: data.email };
-
-  localStorage.setItem('token', authToken);
-  localStorage.setItem('user', JSON.stringify(currentUser));
-
-  closeAuthModal();
-  updateAuthUI();
-  showToast(message, 'success');
-}
-
-function handleLogout(showNotification = true) {
-  authToken = null;
-  currentUser = null;
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-
-  updateAuthUI();
-  if (showNotification) {
-    showToast('Signed out successfully');
-  }
-}
-
 // Main Task Event Listeners setup
 function setupEventListeners() {
   // Modal toggle
   openAddBtn.addEventListener('click', () => {
-    if (!authToken) {
+    if (!clerk || !clerk.user) {
       openAuthModal();
       showToast('Please sign in to create tasks', 'error');
       return;
@@ -351,12 +217,12 @@ function setupEventListeners() {
   searchInput.addEventListener('input', () => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      if (authToken) fetchTasks();
+      if (clerk && clerk.user) fetchTasks();
     }, 300);
   });
-  filterStatusSelect.addEventListener('change', () => { if (authToken) fetchTasks(); });
-  filterPrioritySelect.addEventListener('change', () => { if (authToken) fetchTasks(); });
-  sortBySelect.addEventListener('change', () => { if (authToken) fetchTasks(); });
+  filterStatusSelect.addEventListener('change', () => { if (clerk && clerk.user) fetchTasks(); });
+  filterPrioritySelect.addEventListener('change', () => { if (clerk && clerk.user) fetchTasks(); });
+  sortBySelect.addEventListener('change', () => { if (clerk && clerk.user) fetchTasks(); });
 
   // Download PDF dropdown toggle
   const downloadDropdownBtn = document.getElementById('download-dropdown-btn');
@@ -410,7 +276,7 @@ function showToast(message, type = 'success') {
 
 // Fetch Tasks from API
 async function fetchTasks() {
-  if (!authToken) {
+  if (!clerk || !clerk.user) {
     renderUnauthenticatedState();
     return;
   }
@@ -442,14 +308,14 @@ async function fetchTasks() {
     queryParams.append('sortBy', sortBy);
     queryParams.append('sortOrder', sortOrder);
 
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}?${queryParams.toString()}`, {
-      headers: getAuthHeaders()
+      headers: headers
     });
 
     if (response.status === 401) {
-      handleLogout(false);
       openAuthModal();
-      showToast('Session expired. Please sign in again.', 'error');
+      showToast('Session expired or unauthorized. Please sign in again.', 'error');
       return;
     }
 
@@ -619,7 +485,7 @@ function updateStats() {
 
 // Modal handling
 function openModal(task = null) {
-  if (!authToken) {
+  if (!clerk || !clerk.user) {
     openAuthModal();
     showToast('Please sign in to manage tasks', 'error');
     return;
@@ -706,7 +572,7 @@ function closeViewModal() {
 async function handleFormSubmit(e) {
   e.preventDefault();
 
-  if (!authToken) {
+  if (!clerk || !clerk.user) {
     openAuthModal();
     showToast('Please sign in to manage tasks', 'error');
     return;
@@ -726,25 +592,25 @@ async function handleFormSubmit(e) {
   const taskData = { title, description, priority, dueDate };
 
   try {
+    const headers = await getAuthHeaders();
     let response;
     if (id) {
       response = await fetch(`${API_URL}/${id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: headers,
         body: JSON.stringify(taskData)
       });
     } else {
       response = await fetch(API_URL, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: headers,
         body: JSON.stringify(taskData)
       });
     }
 
     if (response.status === 401) {
-      handleLogout(false);
       openAuthModal();
-      showToast('Session expired. Please sign in again.', 'error');
+      showToast('Session expired or unauthorized. Please sign in again.', 'error');
       return;
     }
 
@@ -760,22 +626,22 @@ async function handleFormSubmit(e) {
 
 // Toggle Completed Checkbox
 async function toggleTaskCompletion(id, isCompleted) {
-  if (!authToken) {
+  if (!clerk || !clerk.user) {
     openAuthModal();
     return;
   }
 
   try {
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/${id}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: headers,
       body: JSON.stringify({ completed: isCompleted })
     });
 
     if (response.status === 401) {
-      handleLogout(false);
       openAuthModal();
-      showToast('Session expired. Please sign in again.', 'error');
+      showToast('Session expired or unauthorized. Please sign in again.', 'error');
       return;
     }
 
@@ -790,7 +656,7 @@ async function toggleTaskCompletion(id, isCompleted) {
 
 // Delete Task
 async function handleDeleteTask(id) {
-  if (!authToken) {
+  if (!clerk || !clerk.user) {
     openAuthModal();
     return;
   }
@@ -798,15 +664,15 @@ async function handleDeleteTask(id) {
   if (!confirm('Are you sure you want to delete this task?')) return;
 
   try {
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: headers
     });
 
     if (response.status === 401) {
-      handleLogout(false);
       openAuthModal();
-      showToast('Session expired. Please sign in again.', 'error');
+      showToast('Session expired or unauthorized. Please sign in again.', 'error');
       return;
     }
 
@@ -821,7 +687,7 @@ async function handleDeleteTask(id) {
 
 // PDF Download Functions
 function downloadCurrentTasks() {
-  if (!authToken || tasks.length === 0) {
+  if (!clerk || !clerk.user || tasks.length === 0) {
     showToast('No tasks available to download', 'error');
     return;
   }
@@ -829,15 +695,16 @@ function downloadCurrentTasks() {
 }
 
 async function downloadAllTasks() {
-  if (!authToken) {
+  if (!clerk || !clerk.user) {
     openAuthModal();
     showToast('Please sign in to download tasks', 'error');
     return;
   }
 
   try {
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}?sortBy=dueDate&sortOrder=asc`, {
-      headers: getAuthHeaders()
+      headers: headers
     });
     if (!response.ok) throw new Error('Failed to fetch all tasks');
 
