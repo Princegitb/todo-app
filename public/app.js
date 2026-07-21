@@ -852,11 +852,12 @@ function generatePdf(taskList, fileName) {
   `;
 
   const opt = {
-    margin: 10,
+    margin: [10, 10, 10, 10],
     filename: fileName,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
   };
 
   html2pdf().set(opt).from(container).save();
