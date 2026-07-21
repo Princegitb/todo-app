@@ -80,65 +80,74 @@ async function initClerk() {
       return;
     }
 
-    // Wait for window.Clerk constructor if script is still loading
-    if (!window.Clerk) {
-      let retries = 0;
-      while (!window.Clerk && retries < 30) {
-        await new Promise(r => setTimeout(r, 100));
-        retries++;
-      }
-    }
-
-    if (!window.Clerk) {
-      console.error('Clerk JS SDK script failed to load.');
-      renderUnauthenticatedState();
-      return;
-    }
-
-    const clerkInstance = new window.Clerk(config.clerkPublishableKey);
-    await clerkInstance.load();
-    clerk = clerkInstance;
     clerkKeyConfigured = true;
 
-    const userBtnDiv = document.getElementById('clerk-user-button');
+    // Dynamically inject Clerk JS SDK with data-clerk-publishable-key attribute
+    const script = document.createElement('script');
+    script.setAttribute('data-clerk-publishable-key', config.clerkPublishableKey);
+    script.async = true;
+    script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+    script.crossOrigin = 'anonymous';
 
-    const updateUIState = (user) => {
-      if (user) {
-        if (openAuthBtn) openAuthBtn.style.display = 'none';
-        if (userBtnDiv) {
-          userBtnDiv.style.display = 'block';
-          clerk.mountUserButton(userBtnDiv);
-        }
-        const displayName = user.fullName || user.firstName || user.primaryEmailAddress?.emailAddress || 'User';
-        if (typeof showAIChatBubble === 'function') {
-          showAIChatBubble(displayName);
-        }
-        fetchTasks();
-      } else {
-        if (userBtnDiv) {
-          try { clerk.unmountUserButton(userBtnDiv); } catch (e) {}
-          userBtnDiv.style.display = 'none';
-        }
-        if (openAuthBtn) {
-          openAuthBtn.style.display = 'inline-flex';
-          openAuthBtn.onclick = () => openAuthModal();
+    script.onload = async () => {
+      try {
+        if (!window.Clerk) {
+          console.error('Clerk JS SDK script loaded but window.Clerk is undefined');
+          return;
         }
 
-        if (typeof hideAIChatBubble === 'function') {
-          hideAIChatBubble();
-        }
+        await window.Clerk.load();
+        clerk = window.Clerk;
 
-        tasks = [];
-        renderUnauthenticatedState();
-        updateStats();
+        const userBtnDiv = document.getElementById('clerk-user-button');
+
+        const updateUIState = (user) => {
+          if (user) {
+            if (openAuthBtn) openAuthBtn.style.display = 'none';
+            if (userBtnDiv) {
+              userBtnDiv.style.display = 'block';
+              clerk.mountUserButton(userBtnDiv);
+            }
+            const displayName = user.fullName || user.firstName || user.primaryEmailAddress?.emailAddress || 'User';
+            if (typeof showAIChatBubble === 'function') {
+              showAIChatBubble(displayName);
+            }
+            fetchTasks();
+          } else {
+            if (userBtnDiv) {
+              try { clerk.unmountUserButton(userBtnDiv); } catch (e) {}
+              userBtnDiv.style.display = 'none';
+            }
+            if (openAuthBtn) {
+              openAuthBtn.style.display = 'inline-flex';
+              openAuthBtn.onclick = () => openAuthModal();
+            }
+
+            if (typeof hideAIChatBubble === 'function') {
+              hideAIChatBubble();
+            }
+
+            tasks = [];
+            renderUnauthenticatedState();
+            updateStats();
+          }
+        };
+
+        clerk.addListener(({ user }) => {
+          updateUIState(user);
+        });
+
+        updateUIState(clerk.user);
+      } catch (loadErr) {
+        console.error('Error in window.Clerk.load():', loadErr);
       }
     };
 
-    clerk.addListener(({ user }) => {
-      updateUIState(user);
-    });
+    script.onerror = () => {
+      console.error('Failed to load Clerk JS SDK script from CDN');
+    };
 
-    updateUIState(clerk.user);
+    document.head.appendChild(script);
 
   } catch (err) {
     console.error('Error initializing Clerk:', err);
