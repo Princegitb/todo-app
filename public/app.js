@@ -801,7 +801,9 @@ function generatePdf(taskList, fileName) {
     year: 'numeric', month: 'long', day: 'numeric'
   });
 
-  const userName = currentUser ? currentUser.name : 'Workspace User';
+  const userName = (clerk && clerk.user)
+    ? (clerk.user.fullName || clerk.user.firstName || clerk.user.primaryEmailAddress?.emailAddress || 'Workspace User')
+    : 'Workspace User';
 
   let tableRows = '';
   taskList.forEach(task => {
